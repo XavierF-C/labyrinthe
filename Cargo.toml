@@ -1,0 +1,7 @@
+[package]
+name = "labyrinthe"
+version = "0.1.0"
+authors = ["XavierF-C <xavier_f-c@hotmail.com>"]
+
+[dependencies]
+glium = "0.26.0-alpha5"
