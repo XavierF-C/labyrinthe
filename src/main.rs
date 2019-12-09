@@ -2,7 +2,8 @@
 extern crate glium;
 use glium::{glutin, Surface}; // Surface est un trait et doit être importé
 
-mod shader; // Permet de construire les shaders nécéssaires
+mod shaders; // Permet de construire les shaders nécéssaires
+mod donnees; // Permet de gérer les données associées avec OpenGL
 
 fn main() {
 
@@ -22,7 +23,20 @@ fn main() {
     // À garder?
     //let debut_programme = std::time::SystemTime::now();
 
-    let programme_opengl = shader::ProgrammeOpenGL::new(&affichage);
+    // Variables importantes pour OpenGL
+    let programme_opengl = shaders::ProgrammeOpenGL::new(&affichage);
+    let mut donnees_opengl = donnees::DonneesOpenGL::new();
+    donnees_opengl.ajouter_triangle([
+        0.0, 0.7, 0.5,
+        -0.5, -0.3, 0.5,
+        0.5, -0.3, 0.5,
+    ]);
+    donnees_opengl.ajouter_triangle([
+        0.0, -0.5, 0.5,
+        -0.2, -0.8, 0.5,
+        0.2, -0.8, 0.5,
+    ]);
+    donnees_opengl.generer_vertex_buffer(&affichage);
 
     // Cette closure représente la boucle principale du programme
     boucle_evenements.run(move |evenement, _, flot_controle| {
@@ -52,9 +66,15 @@ fn main() {
 
         // affichage.draw() retourne un struct Frame, sur lequel on peut dessiner 
         let mut cadre = affichage.draw();
-        
+
         cadre.clear_color(0.3, 0.3, 0.5, 1.0);
-        //cadre.draw(); À compléter dès la création des shaders
+        cadre.draw(
+            donnees_opengl.obtenir_vertex_buffer(),
+            &donnees_opengl.obtenir_indices(&affichage),
+            &(programme_opengl.programme),
+            &glium::uniforms::EmptyUniforms,
+            &Default::default()
+        ).unwrap();
         cadre.finish().unwrap();
     });
 }

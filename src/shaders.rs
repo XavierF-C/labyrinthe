@@ -1,13 +1,11 @@
-/**
-    Interface publique du module shader
-*/
+/*
+    Interface publique du module shaders
 
+    Sert à compiler les shaders.
+*/
 
 // Représente un programme de shaders OpenGL
 pub struct ProgrammeOpenGL {
-
-    vertex_shader: std::string::String,
-    fragment_shader: std::string::String,
 
     pub programme: glium::Program,
 }
@@ -50,8 +48,7 @@ impl ProgrammeOpenGL {
         };
 
         ProgrammeOpenGL {
-            vertex_shader: vertex_shader,
-            fragment_shader: fragment_shader,
+            
             programme: programme 
         }
     }
@@ -61,19 +58,9 @@ impl ProgrammeOpenGL {
 
 
 
-/**
-    Partie privée du module shader 
+/*
+    Partie privée du module shaders
 */
-
-
-// Primitive pour OpenGL
-#[derive(Copy, Clone)]
-struct Sommet {
-    position: [f32; 3],
-}
-// Permet à Glium de l'utiliser avec OpenGL
-implement_vertex!(Sommet, position);
-
 
 // Déclaration de tous les shaders utilisés
 // La notation r#""# permet de préserver la chaîne brute
