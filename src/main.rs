@@ -1,9 +1,11 @@
 #[macro_use]
 extern crate glium;
-use glium::{glutin, Surface}; // Surface est un trait et doit être importé
+use glium::{glutin}; // Surface est un trait et doit être importé
+extern crate nalgebra_glm as glm;
 
 mod shaders; // Permet de construire les shaders nécéssaires
 mod donnees; // Permet de gérer les données associées avec OpenGL
+mod ecran; // Permet de dessiner et d'interagir avec l'écran
 
 fn main() {
 
@@ -27,17 +29,18 @@ fn main() {
     let programme_opengl = shaders::ProgrammeOpenGL::new(&affichage);
     let mut donnees_opengl = donnees::DonneesOpenGL::new();
     donnees_opengl.ajouter_triangle([
-        0.0, 0.7, 0.5,
-        -0.5, -0.3, 0.5,
-        0.5, -0.3, 0.5,
+        0.0, 0.7, 0.9,
+        -0.5, -0.3, 0.9,
+        0.5, -0.3, 0.9,
     ]);
     donnees_opengl.ajouter_triangle([
-        0.0, -0.5, 0.5,
-        -0.2, -0.8, 0.5,
-        0.2, -0.8, 0.5,
+        0.0, -0.5, 0.9,
+        -0.2, -0.8, 0.9,
+        0.2, -0.8, 0.9,
     ]);
     donnees_opengl.generer_vertex_buffer(&affichage);
 
+    let mut compteur: u64 = 0;
     // Cette closure représente la boucle principale du programme
     boucle_evenements.run(move |evenement, _, flot_controle| {
 
@@ -64,8 +67,20 @@ fn main() {
         *flot_controle = glutin::event_loop::ControlFlow::WaitUntil(prochaine_date_affichage);
 
 
-        // affichage.draw() retourne un struct Frame, sur lequel on peut dessiner 
-        let mut cadre = affichage.draw();
+        // affichage.draw() retourne un struct Frame, sur lequel on peut dessiner
+
+        let mut z = (compteur % 320) as f32 / 720.0;
+        if z >= 0.33 {
+            z = 0.33
+        }//let z = 0.0;
+        let angle: f32 = 0.5 * (compteur as f32 / 30.0).cos();
+
+        let vue = ecran::Vue::new(  glm::Vec3::new(0.0, 0.0, z),
+                                    glm::Vec3::new(angle.sin(), 0.0, angle.cos()));
+        vue.dessiner(&donnees_opengl, &programme_opengl, &affichage);
+
+        compteur += 1;
+        /*let mut cadre = affichage.draw();
 
         cadre.clear_color(0.3, 0.3, 0.5, 1.0);
         cadre.draw(
@@ -75,6 +90,6 @@ fn main() {
             &glium::uniforms::EmptyUniforms,
             &Default::default()
         ).unwrap();
-        cadre.finish().unwrap();
+        cadre.finish().unwrap();*/
     });
 }

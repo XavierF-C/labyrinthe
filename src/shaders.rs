@@ -14,8 +14,8 @@ impl ProgrammeOpenGL {
 
     pub fn new(affichage: &glium::Display) -> ProgrammeOpenGL {
 
-        let vertex_shader = obtenir_vertex_shader();
-        let fragment_shader = obtenir_fragment_shader();
+        let vertex_shader = code_source::vertex_shader();
+        let fragment_shader = code_source::fragment_shader();
         let programme = glium::Program::from_source(
             affichage,
             &vertex_shader,
@@ -62,31 +62,38 @@ impl ProgrammeOpenGL {
     Partie privée du module shaders
 */
 
-// Déclaration de tous les shaders utilisés
-// La notation r#""# permet de préserver la chaîne brute
-
-fn obtenir_vertex_shader() -> std::string::String
+mod code_source
 {
-    std::string::String::from(r#"
-        #version 330
+    // Déclaration de tous les shaders utilisés
+    // La notation r#""# permet de préserver la chaîne brute
 
-        in vec3 position;
+    pub fn vertex_shader() -> std::string::String
+    {
+        std::string::String::from(r#"
+            #version 330
+            uniform layout(std140);
 
-        void main() {
-            gl_Position = vec4(position, 1.0);
-        }
-    "#)
-}
+            uniform mat4 cameraPerspective;
+            
+            in vec3 position;
 
-fn obtenir_fragment_shader() -> std::string::String
-{
-    std::string::String::from(r#"
-        #version 330
-        
-        out vec4 couleur;
-        
-        void main() {
-            couleur = vec4(0.5, 0.5, 0.5, 1.0);
-        }
-    "#)
+            void main() {
+                gl_Position = cameraPerspective * vec4(position, 1.0);
+            }
+        "#)
+    }
+    // Déclaration du bloque uniform, avec les données globales partagées entre les shaders
+
+    pub fn fragment_shader() -> std::string::String
+    {
+        std::string::String::from(r#"
+            #version 330
+
+            out vec4 couleur;
+            
+            void main() {
+                couleur = vec4(0.5, 0.5, 0.5, 1.0);
+            }
+        "#)
+    }
 }
