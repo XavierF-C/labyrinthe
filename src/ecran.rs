@@ -15,12 +15,12 @@ pub struct Vue {
 
 impl Vue {
 
-    pub fn new(position: glm::Vec3, direction: glm::Vec3) -> Vue {
+    pub fn new(position: &glm::Vec3, direction: &glm::Vec3) -> Vue {
 
         Vue {
 
-            position: position,
-            direction: direction,
+            position: position.clone(),
+            direction: direction.clone(),
         }
     }
 
@@ -33,7 +33,10 @@ impl Vue {
         // affichage.draw() retourne un struct Frame, sur lequel on peut dessiner 
         let mut cadre = affichage.draw();
 
-        let matrice_camera_perspective = ::donnees::matrice_camera_perspective(&self.position, &self.direction);
+        let matrice_camera_perspective = ::donnees::matrice_camera_perspective(
+                                            &self.position,
+                                            &self.direction,
+                                            Vue::obtenir_ratio_ecran(&affichage));
         // Données globales à envoyer, vers le bloc uniform
         let donnees_globales = uniform! {
             cameraPerspective: matrice_camera_perspective
@@ -44,10 +47,18 @@ impl Vue {
             donnees_opengl.obtenir_vertex_buffer(),
             &donnees_opengl.obtenir_indices(&affichage),
             &programme_opengl.programme,
-            &donnees_globales,//&glium::uniforms::EmptyUniforms,
+            &donnees_globales,
             &Default::default()
         ).unwrap();
         cadre.finish().unwrap();
+    }
+
+    // Donne le ratio largeur / hauteur de l'écran
+    fn obtenir_ratio_ecran(affichage: &glium::Display) -> f32 {
+
+        let fenetre = affichage.gl_window().window().inner_size();
+
+        return (fenetre.width / fenetre.height) as f32;
     }
 }
 
