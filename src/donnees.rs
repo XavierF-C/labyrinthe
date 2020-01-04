@@ -37,20 +37,179 @@ impl DonneesOpenGL {
 
         self.sommets.push(Sommet{
             position: [coordonnees[0], coordonnees[1], coordonnees[2]],
+            coordonnees_texture: [0.0, 0.0, 0.0],
         });
 
         self.sommets.push(Sommet{
             position: [coordonnees[3], coordonnees[4], coordonnees[5]],
+            coordonnees_texture: [0.0, 1.0, 0.0],
         });
 
         self.sommets.push(Sommet{
             position: [coordonnees[6], coordonnees[7], coordonnees[8]],
+            coordonnees_texture: [1.0, 0.0 , 0.0],
         });
 
-        for _ in 0..3 {
-            self.indices.push(self.indices.len() as u32);
-        }
+        let sommet1 = self.sommets.len() as u32 - 3;
+        let sommet2 = sommet1 + 1;
+        let sommet3 = sommet1 + 2;
+        
+        self.indices.reserve(5);
+        self.indices.push(sommet1);// Créer un triangle «dégénéré» avec le mode «trianglestrip»
+        self.indices.push(sommet1);
+        self.indices.push(sommet2);
+        self.indices.push(sommet3);
+        self.indices.push(sommet3);// Créer un triangle «dégénéré» avec le mode «trianglestrip»
+        //self.indices.push(self.indices.len() as u32);// Créer un triangle «dégénéré» avec le mode «trianglestrip»
+        /*for _ in 0..3 {
+            self.indices.push(self.indices.len() as u32 - 1);
+        }*/
+        //self.indices.push(self.indices.len() as u32 - 2);// Créer un triangle «dégénéré» avec le mode «trianglestrip»
     }
+
+    pub fn ajouter_plan(
+        &mut self,
+        coin_bas_gauche: [f32; 3],
+        coin_haut_gauche: [f32; 3],
+        coin_haut_droit: [f32; 3],
+        coin_bas_droit: [f32; 3],
+        texture: [f32; 3]) // longueur, hauteur, id 
+        {
+        
+        self.sommets.reserve(4);
+        let premier_sommet = self.sommets.len() as u32;
+
+        self.sommets.push(Sommet{
+            position: [coin_bas_gauche[0], coin_bas_gauche[1], coin_bas_gauche[2]],
+            coordonnees_texture: [0.0, 0.0, texture[2]],
+        });
+
+        self.sommets.push(Sommet{
+            position: [coin_haut_gauche[0], coin_haut_gauche[1], coin_haut_gauche[2]],
+            coordonnees_texture: [0.0, texture[1], texture[2]],
+        });
+
+        self.sommets.push(Sommet{
+            position: [coin_haut_droit[0], coin_haut_droit[1], coin_haut_droit[2]],
+            coordonnees_texture: [texture[0], texture[1], texture[2]],
+        });
+
+        self.sommets.push(Sommet{
+            position: [coin_bas_droit[0], coin_bas_droit[1], coin_bas_droit[2]],
+            coordonnees_texture: [texture[0], 0.0, texture[2]],
+        });
+
+
+        self.indices.reserve(6);
+
+        self.indices.push(premier_sommet); // Créer un triangle «dégénéré» avec le mode «trianglestrip»
+        self.indices.push(premier_sommet);
+        self.indices.push(premier_sommet + 1);
+        self.indices.push(premier_sommet + 3);
+        self.indices.push(premier_sommet + 2);
+        self.indices.push(premier_sommet + 2); // Créer un triangle «dégénéré» avec le mode «trianglestrip»
+    }
+
+    // position: centre xyz du cuboid
+    // dimensions: longueurs xyz du cuboid
+    // texture: longueur, hauteur, id. Longueur et hauteur doivent être différent de 0
+    /*pub fn ajouter_cuboid(&mut self, position: [f32; 3], dimensions: [f32; 3], texture: [f32; 3]) {
+
+        self.sommets.reserve(8);
+
+        /* Configuration du cuboid. ABCD est devant EFGH
+
+        G____F
+        |B____C
+        H|   E|
+         A____D
+
+         +x est vers la droite
+         +y est vers le haut
+         +z est devant
+        
+        */
+
+        // Sommet A
+        self.sommets.push(Sommet{
+            position: [position[0] - dimensions[0], position[1] - dimensions[1], position[2] - dimensions[2]],
+            coordonnees_texture: [0.0, 0.0, texture[2]],
+        });
+
+        // Sommet B
+        self.sommets.push(Sommet{
+            position: [position[0] - dimensions[0], position[1] + dimensions[1], position[2] - dimensions[2]],
+            coordonnees_texture: [0.0, dimensions[1] / texture[1], texture[2]],
+        });
+
+        // Sommet C
+        self.sommets.push(Sommet{
+            position: [position[0] + dimensions[0], position[1] + dimensions[1], position[2] - dimensions[2]],
+            coordonnees_texture: [dimensions[0] / texture[0], dimensions[1] / texture[1], texture[2]],
+        });
+
+        // Sommet D
+        self.sommets.push(Sommet{
+            position: [position[0] + dimensions[0], position[1] - dimensions[1], position[2] - dimensions[2]],
+            coordonnees_texture: [dimensions[0] / texture[0], 0.0, texture[2]],
+        });
+
+        // Sommet E
+        self.sommets.push(Sommet{
+            position: [position[0] + dimensions[0], position[1] - dimensions[1], position[2] + dimensions[2]],
+            coordonnees_texture: [0.0, 0.0, texture[2]],
+        });
+
+        // Sommet F
+        self.sommets.push(Sommet{
+            position: [position[0] + dimensions[0], position[1] + dimensions[1], position[2] + dimensions[2]],
+            coordonnees_texture: [0.0, texture[1], texture[2]],
+        });
+
+        // Sommet G
+        self.sommets.push(Sommet{
+            position: [position[0] - dimensions[0], position[1] + dimensions[1], position[2] + dimensions[2]],
+            coordonnees_texture: [texture[0], texture[1], texture[2]],
+        });
+
+        // Sommet H
+        self.sommets.push(Sommet{
+            position: [position[0] - dimensions[0], position[1] - dimensions[1], position[2] + dimensions[2]],
+            coordonnees_texture: [texture[0], 0.0, texture[2]],
+        });
+
+        self.indices.reserve(16);
+
+        let sommet_a = self.sommets.len() as u32 - 8;
+        let sommet_b = sommet_a + 1;
+        let sommet_c = sommet_a + 2;
+        let sommet_d = sommet_a + 3;
+        let sommet_e = sommet_a + 4;
+        let sommet_f = sommet_a + 5;
+        let sommet_g = sommet_a + 6;
+        let sommet_h = sommet_a + 7;
+        
+        self.indices.push(sommet_a); // Créer un triangle «dégénéré» avec le mode «trianglestrip»
+        self.indices.push(sommet_a);
+        self.indices.push(sommet_b);
+        self.indices.push(sommet_c);
+        
+        self.indices.push(sommet_g);
+        self.indices.push(sommet_f);
+        self.indices.push(sommet_e);
+        self.indices.push(sommet_c);
+        
+        self.indices.push(sommet_d);
+        self.indices.push(sommet_a);
+        self.indices.push(sommet_e);
+        self.indices.push(sommet_h);
+        
+        self.indices.push(sommet_g);
+        self.indices.push(sommet_a);
+        self.indices.push(sommet_b);
+        self.indices.push(sommet_b); // Créer un triangle «dégénéré» avec le mode «trianglestrip»
+
+    }*/
 
     // Cette fonction est nécessaire pour appeler correctement obtenir_vertex_buffer
     pub fn generer_vertex_buffer(&mut self, affichage: &glium::Display) {
@@ -68,9 +227,10 @@ impl DonneesOpenGL {
 
         glium::index::IndexBuffer::new(
             affichage,
-            glium::index::PrimitiveType::TrianglesList,
+            glium::index::PrimitiveType::TriangleStrip,//glium::index::PrimitiveType::TrianglesList,
             &self.indices[..]
         ).unwrap()
+        // TriangleStrip <=> Chaque triplet consécutif représente un triangle
         // TrianglesList <=> Un triangle par triplet d'indices
     }
 }
@@ -79,9 +239,10 @@ impl DonneesOpenGL {
 #[derive(Copy, Clone)]
 pub struct Sommet {
     position: [f32; 3],
+    coordonnees_texture: [f32; 3], // x,y et index
 }
 // Permet à Glium de l'utiliser avec OpenGL
-implement_vertex!(Sommet, position);
+implement_vertex!(Sommet, position, coordonnees_texture);
 
 // Matrice importante qui sera appliquée sur tous les sommets
 pub fn matrice_camera_perspective(position: &glm::Vec3, direction: &glm::Vec3, ratio: f32) -> [[f32; 4]; 4] {

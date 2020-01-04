@@ -2,6 +2,7 @@
 extern crate glium;
 use glium::{glutin}; // Surface est un trait et doit être importé
 extern crate nalgebra_glm as glm;
+extern crate image;
 
 mod shaders; // Construire les shaders nécéssaires
 mod donnees; // Gérer les données associées avec OpenGL
@@ -17,7 +18,8 @@ fn main() {
         .with_resizable(true)
         .with_maximized(true)
         .with_title("Labyrinthe");
-    let contexte_opengl = glutin::ContextBuilder::new();
+    let contexte_opengl = glutin::ContextBuilder::new().with_depth_buffer(24);
+        // 24 bits est un choix commun pour le depth buffer
     let affichage = glium::Display::new(
             parametres_fenetre,
             contexte_opengl,
@@ -31,17 +33,42 @@ fn main() {
     // Variables importantes pour OpenGL
     let programme_opengl = shaders::ProgrammeOpenGL::new(&affichage);
     let mut donnees_opengl = donnees::DonneesOpenGL::new();
-    donnees_opengl.ajouter_triangle([
-        0.0, 0.7, 0.9,
+    /*donnees_opengl.ajouter_triangle([
         -0.5, -0.3, 0.9,
+        0.0, 0.7, 0.9,
         0.5, -0.3, 0.9,
-    ]);
+    ]);*/
+    /*donnees_opengl.ajouter_cuboid(
+        [0.0, 0.0, 0.9],
+        [2.0, 1.0, 0.1],
+        [1.0, 1.0, 0.0]
+    );*/
+    donnees_opengl.ajouter_plan(
+        [-0.5, -0.5, 1.0],
+        [-0.5, 0.5, 1.0],
+        [0.5, 0.5, 1.0],
+        [0.5, -0.5, 1.0],
+        [13.0, 2.0, 0.0]
+    );
     donnees_opengl.ajouter_triangle([
         0.0, -0.5, 0.9,
         -0.2, -0.8, 0.9,
         0.2, -0.8, 0.9,
     ]);
     donnees_opengl.generer_vertex_buffer(&affichage);
+
+    // Chargement des textures
+    const CHEMIN: &str = "images/";
+    let briques = image::io::Reader::open(CHEMIN.to_owned() + "briques.png").unwrap().decode().unwrap().to_rgba();
+    let dimensions = briques.dimensions();
+    let image_briques = glium::texture::RawImage2d::from_raw_rgba_reversed(&briques.into_raw(), dimensions);
+    
+    let briques_roses = image::io::Reader::open(CHEMIN.to_owned() + "briques_roses.png").unwrap().decode().unwrap().to_rgba();
+    let dimensions = briques_roses.dimensions();
+    let image_briques_roses = glium::texture::RawImage2d::from_raw_rgba_reversed(&briques_roses.into_raw(), dimensions);
+    
+    let images = vec![image_briques, image_briques_roses];
+    let textures = glium::texture::texture2d_array::Texture2dArray::new(&affichage, images);
 
     
     // Variables utiles à la logique du programme

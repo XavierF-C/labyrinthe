@@ -42,13 +42,24 @@ impl Vue {
             cameraPerspective: matrice_camera_perspective
         };
 
-        cadre.clear_color(0.3, 0.3, 0.5, 1.0);
+        cadre.clear_color_and_depth((0.3, 0.3, 0.5, 1.0), 1.0);
+
+        // Permet de tenir compte de la profondeur
+        let parametres = glium::DrawParameters {
+            depth: glium::Depth {
+                test: glium::draw_parameters::DepthTest::IfLess,
+                write: true,
+                .. Default::default()
+            },
+            .. Default::default()
+        };
+
         cadre.draw(
             donnees_opengl.obtenir_vertex_buffer(),
             &donnees_opengl.obtenir_indices(&affichage),
             &programme_opengl.programme,
             &donnees_globales,
-            &Default::default()
+            &parametres,
         ).unwrap();
         cadre.finish().unwrap();
     }

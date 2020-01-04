@@ -26,24 +26,25 @@ impl ProgrammeOpenGL {
         let programme = match programme {
 
             Ok(o) => o,
-            Err(e) => match e {
-                glium::program::ProgramCreationError::CompilationError(e) => {
+            Err(e) => {
+                
+                match e {
+                    
+                    glium::program::ProgramCreationError::CompilationError(e) => {
+                        println!("\n\nIl y a au moins une erreur de compilation des shaders:\n{}", e);
+                    },
 
-                    println!("\n\nIl y a au moins une erreur de compilation des shaders:\n{}", e);
-                    panic!("La compilation des shaders a échouée");
-                },
+                    glium::program::ProgramCreationError::LinkingError(e) => {
+                        println!("\n\nIl y a au moins une erreur de linking des shaders:\n{}", e);
+                    },
 
-                glium::program::ProgramCreationError::LinkingError(e) => {
+                    _ => { 
+                        println!("\n\nUne erreur inconnue est survenue à la compilation des shaders.");
+                        println!("Voir glium::program::ProgramCreationError\n");
+                    },
+                }
 
-                    println!("\n\nIl y a au moins une erreur de linking des shaders:\n{}", e);
-                    panic!("La compilation des shaders a échouée");
-                },
-
-                _ => { 
-                    println!("\n\nUne erreur inconnue est survenue à la compilation des shaders.");
-                    println!("Voir glium::program::ProgramCreationError\n");
-                    panic!("La compilation des shaders a échouée")
-                },
+                panic!("La compilation des shaders a échouée");
             }
         };
 
@@ -76,23 +77,30 @@ mod code_source
             uniform mat4 cameraPerspective;
             
             in vec3 position;
+            in vec3 coordonnees_texture;
+            out vec3 coord_tex;
 
             void main() {
                 gl_Position = cameraPerspective * vec4(position, 1.0);
+                coord_tex = coordonnees_texture;
             }
         "#)
     }
-    // Déclaration du bloque uniform, avec les données globales partagées entre les shaders
-
+    
     pub fn fragment_shader() -> std::string::String
     {
         std::string::String::from(r#"
             #version 330
+            uniform layout(std140);
 
+            uniform sampler2DArray textures;
+
+            in vec3 coord_tex;
             out vec4 couleur;
             
             void main() {
-                couleur = vec4(0.5, 0.5, 0.5, 1.0);
+                //couleur = vec4(0.5, 0.5, 0.5, 1.0);
+                couleur = texture(textures, coord_tex);
             }
         "#)
     }
