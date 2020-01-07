@@ -7,3 +7,5 @@ authors = ["XavierF-C <xavier_f-c@hotmail.com>"]
 glium = "0.26.0-alpha5"
 nalgebra-glm = "0.5"
 image = "0.22.3"
+
+rand = "0.7.2"

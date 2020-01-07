@@ -75,14 +75,19 @@ mod code_source
             uniform layout(std140);
 
             uniform mat4 cameraPerspective;
+            uniform vec3 positionObservateur;
             
             in vec3 position;
             in vec3 coordonnees_texture;
+            
             out vec3 coord_tex;
+            out float distance;
 
             void main() {
                 gl_Position = cameraPerspective * vec4(position, 1.0);
+                
                 coord_tex = coordonnees_texture;
+                distance = distance(positionObservateur, position);
             }
         "#)
     }
@@ -96,11 +101,12 @@ mod code_source
             uniform sampler2DArray textures;
 
             in vec3 coord_tex;
+            in float distance;
+
             out vec4 couleur;
             
             void main() {
-                //couleur = vec4(0.5, 0.5, 0.5, 1.0);
-                couleur = texture(textures, coord_tex);
+                couleur = texture(textures, coord_tex) / (distance + 1.0);
             }
         "#)
     }

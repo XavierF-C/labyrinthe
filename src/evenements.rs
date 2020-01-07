@@ -14,11 +14,11 @@ pub struct GestionnaireEvenements {
 
 impl GestionnaireEvenements {
 
-    pub fn new() -> GestionnaireEvenements {
+    pub fn new(affichage: &glium::Display) -> GestionnaireEvenements {
 
         GestionnaireEvenements {
             clavier: Clavier::new(),
-            souris: Souris::new(),
+            souris: Souris::new(affichage),
         }
     }
 
@@ -142,12 +142,16 @@ pub struct Souris {
 
 impl Souris {
 
-    pub fn new() -> Souris {
+    pub fn new(affichage: &glium::Display) -> Souris {
 
-        Souris{
+        let mut souris = Souris{
             position_actuelle: glutin::dpi::LogicalPosition::new( 0.0, 0.0),
             position_origine: glutin::dpi::LogicalPosition::new( 0.0, 0.0),
-        }
+        };
+
+        souris.centrer(affichage);
+
+        souris
     }
 
     pub fn delta_x(&self) -> f32 {

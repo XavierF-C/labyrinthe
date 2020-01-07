@@ -39,7 +39,8 @@ impl Vue {
                                             Vue::obtenir_ratio_ecran(&affichage));
         // Données globales à envoyer, vers le bloc uniform
         let donnees_globales = uniform! {
-            cameraPerspective: matrice_camera_perspective
+            cameraPerspective: matrice_camera_perspective,
+            positionObservateur: [self.position.x, self.position.y, self.position.z]
         };
 
         cadre.clear_color_and_depth((0.3, 0.3, 0.5, 1.0), 1.0);

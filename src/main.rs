@@ -4,13 +4,24 @@ use glium::{glutin}; // Surface est un trait et doit être importé
 extern crate nalgebra_glm as glm;
 extern crate image;
 
+mod labyrinthe; // Générer le labyrinthe
 mod shaders; // Construire les shaders nécéssaires
 mod donnees; // Gérer les données associées avec OpenGL
 mod ecran; // Dessiner et d'interagir avec l'écran
 mod evenements; // Gérer le clavier, la souris, etc.
 mod observateur; // Contrôler la caméra
+mod textures; // Charger et utiliser des textures
 
 fn main() {
+
+    // Avant d'ouvrir la fenêtre, on charge les images et on crée le labyrinthe
+
+    let mut textures = textures::Textures::new();
+    const BRIQUES: &str = "briques";
+    textures.charger_image("briques.png", BRIQUES);
+
+    let mut labyrinthe = labyrinthe::Labyrinthe::new(20, 20);
+
 
     // Initialisation des composantes graphiques principales
     let boucle_evenements = glutin::event_loop::EventLoop::new();
@@ -26,53 +37,26 @@ fn main() {
             &boucle_evenements
         ).unwrap();
     
-    // À garder?
-    //let debut_programme = std::time::SystemTime::now();
-
+    textures.generer_textures(&affichage);
     
     // Variables importantes pour OpenGL
     let programme_opengl = shaders::ProgrammeOpenGL::new(&affichage);
     let mut donnees_opengl = donnees::DonneesOpenGL::new();
-    /*donnees_opengl.ajouter_triangle([
-        -0.5, -0.3, 0.9,
-        0.0, 0.7, 0.9,
-        0.5, -0.3, 0.9,
-    ]);*/
-    /*donnees_opengl.ajouter_cuboid(
-        [0.0, 0.0, 0.9],
-        [2.0, 1.0, 0.1],
-        [1.0, 1.0, 0.0]
-    );*/
-    donnees_opengl.ajouter_plan(
+    labyrinthe.ajouter_geometrie([1.0, 1.0, textures.obtenir_id(BRIQUES)], &mut donnees_opengl);
+    /*donnees_opengl.ajouter_plan(
         [-0.5, -0.5, 1.0],
         [-0.5, 0.5, 1.0],
         [0.5, 0.5, 1.0],
         [0.5, -0.5, 1.0],
-        [13.0, 2.0, 0.0]
-    );
-    donnees_opengl.ajouter_triangle([
-        0.0, -0.5, 0.9,
-        -0.2, -0.8, 0.9,
-        0.2, -0.8, 0.9,
-    ]);
-    donnees_opengl.generer_vertex_buffer(&affichage);
+        [4.0, 2.0, textures.obtenir_id("briques")]
+    );*/
 
-    // Chargement des textures
-    const CHEMIN: &str = "images/";
-    let briques = image::io::Reader::open(CHEMIN.to_owned() + "briques.png").unwrap().decode().unwrap().to_rgba();
-    let dimensions = briques.dimensions();
-    let image_briques = glium::texture::RawImage2d::from_raw_rgba_reversed(&briques.into_raw(), dimensions);
-    
-    let briques_roses = image::io::Reader::open(CHEMIN.to_owned() + "briques_roses.png").unwrap().decode().unwrap().to_rgba();
-    let dimensions = briques_roses.dimensions();
-    let image_briques_roses = glium::texture::RawImage2d::from_raw_rgba_reversed(&briques_roses.into_raw(), dimensions);
-    
-    let images = vec![image_briques, image_briques_roses];
-    let textures = glium::texture::texture2d_array::Texture2dArray::new(&affichage, images);
+
+    donnees_opengl.generer_vertex_buffer(&affichage);
 
     
     // Variables utiles à la logique du programme
-    let mut gestionnaire_evenements = evenements::GestionnaireEvenements::new();
+    let mut gestionnaire_evenements = evenements::GestionnaireEvenements::new(&affichage);
 
     let mut observateur = observateur::Observateur::new(
         glm::Vec3::new(0.0, 0.0, 0.0),
