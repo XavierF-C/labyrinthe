@@ -74,6 +74,128 @@ impl DonneesOpenGL {
         self.indices.push(premier_sommet + 2); // Créer un triangle «dégénéré» avec le mode «trianglestrip»
     }
 
+    // Cette fonction ajoute de nombreux triangles pour former un seul plan
+    // Permet d'améliorer la qualité de la luminosité
+    pub fn ajouter_gros_plan(
+        &mut self,
+        divisions: [u32; 2], // Nombre de colonnes et de rangées
+        coin_bas_gauche: [f32; 3],
+        coin_haut_gauche: [f32; 3],
+        coin_bas_droit: [f32; 3],
+        texture: [f32; 3]) // longueur, hauteur, id 
+        {
+
+        let sommets_par_rangee = divisions[0] + 1;
+        let sommets_par_colonne = divisions[1] + 1;
+
+        self.sommets.reserve((sommets_par_rangee * sommets_par_colonne) as usize);
+        let premier_sommet = self.sommets.len() as u32;
+
+        /*
+        for colonne in 0..sommets_par_rangee {
+
+            let interpolation_colonne = colonne as f32 / divisions[0] as f32;
+            
+            for rangee in 0..sommets_par_colonne {
+
+                let interpolation_rangee = rangee as f32 / divisions[1] as f32;
+
+                let largeur = [
+                    coin_haut_gauche[0] - coin_bas_gauche[0],
+                    coin_haut_gauche[1] - coin_bas_gauche[1],
+                    coin_haut_gauche[2] - coin_bas_gauche[2]];
+
+                let longueur = [
+                    coin_bas_droit[0] - coin_bas_gauche[0],
+                    coin_bas_droit[1] - coin_bas_gauche[1],
+                    coin_bas_droit[2] - coin_bas_gauche[2]];
+
+                self.sommets.push(Sommet{
+                    position: [
+                        coin_bas_gauche[0] + interpolation_colonne * longueur[0] + interpolation_rangee * largeur[0],
+                        coin_bas_gauche[1] + interpolation_colonne * longueur[1] + interpolation_rangee * largeur[1],
+                        coin_bas_gauche[2] + interpolation_colonne * longueur[2] + interpolation_rangee * largeur[2],
+                        ],
+                    coordonnees_texture: [
+                        interpolation_colonne * texture[0],
+                        interpolation_rangee * texture[1],
+                        texture[2]
+                        ]
+                });
+            }
+        }*/
+        
+        for rangee in 0..sommets_par_colonne {
+
+            let interpolation_rangee = rangee as f32 / divisions[1] as f32;
+            
+            for colonne in 0..sommets_par_rangee {
+
+                let interpolation_colonne = colonne as f32 / divisions[0] as f32;
+
+                let largeur = [
+                    coin_haut_gauche[0] - coin_bas_gauche[0],
+                    coin_haut_gauche[1] - coin_bas_gauche[1],
+                    coin_haut_gauche[2] - coin_bas_gauche[2]];
+
+                let longueur = [
+                    coin_bas_droit[0] - coin_bas_gauche[0],
+                    coin_bas_droit[1] - coin_bas_gauche[1],
+                    coin_bas_droit[2] - coin_bas_gauche[2]];
+
+                self.sommets.push(Sommet{
+                    position: [
+                        coin_bas_gauche[0] + interpolation_colonne * longueur[0] + interpolation_rangee * largeur[0],
+                        coin_bas_gauche[1] + interpolation_colonne * longueur[1] + interpolation_rangee * largeur[1],
+                        coin_bas_gauche[2] + interpolation_colonne * longueur[2] + interpolation_rangee * largeur[2],
+                        ],
+                    coordonnees_texture: [
+                        interpolation_colonne * texture[0],
+                        interpolation_rangee * texture[1],
+                        texture[2]
+                        ]
+                });
+            }
+        }
+
+        // +2 à cause des triangles «dégénérés»
+        /*let sommets_par_rangee = (2 * (divisions[0] + 1) + 2) as u32;
+
+        self.indices.reserve((sommets_par_rangee * divisions[1]) as usize);
+
+        for rangee in 0..divisions[1] as u32 {
+
+            //let decalage = sommets_par_rangee * rangee;
+            self.indices.push(premier_sommet + sommets_par_rangee * rangee); // Créer un triangle «dégénéré» avec le mode «trianglestrip»
+            
+            for colonne in 0..divisions[0] + 1 as u32 {
+
+                self.indices.push(premier_sommet + colonne + sommets_par_rangee * rangee);
+                self.indices.push(premier_sommet + divisions[0] + 1 + colonne + sommets_par_rangee * rangee);
+            }
+
+            self.indices.push(premier_sommet + sommets_par_rangee * (rangee + 1)); // Créer un triangle «dégénéré» avec le mode «trianglestrip»
+        }*/
+
+        // +2 à cause des triangles «dégénérés»
+
+        //self.indices.reserve((sommets_par_rangee * divisions[1]) as usize);
+
+        for rangee in 0..divisions[1] {
+
+            //let decalage = sommets_par_rangee * rangee;
+            self.indices.push(premier_sommet + sommets_par_rangee * rangee); // Créer un triangle «dégénéré» avec le mode «trianglestrip»
+            
+            for colonne in 0..sommets_par_rangee {
+
+                self.indices.push(premier_sommet + colonne + sommets_par_rangee * rangee);
+                self.indices.push(premier_sommet + sommets_par_rangee + colonne + sommets_par_rangee * rangee);
+            }
+
+            self.indices.push(premier_sommet + sommets_par_rangee * (rangee + 2) - 1); // Créer un triangle «dégénéré» avec le mode «trianglestrip»
+        }
+    }
+
     // Cette fonction est nécessaire pour appeler correctement obtenir_vertex_buffer
     pub fn generer_vertex_buffer(&mut self, affichage: &glium::Display) {
 

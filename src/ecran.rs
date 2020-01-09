@@ -43,7 +43,8 @@ impl Vue {
             positionObservateur: [self.position.x, self.position.y, self.position.z]
         };
 
-        cadre.clear_color_and_depth((0.3, 0.3, 0.5, 1.0), 1.0);
+        cadre.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
+        //cadre.clear_color_and_depth((0.3, 0.3, 0.5, 1.0), 1.0);
 
         // Permet de tenir compte de la profondeur
         let parametres = glium::DrawParameters {

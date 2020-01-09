@@ -18,9 +18,13 @@ fn main() {
 
     let mut textures = textures::Textures::new();
     const BRIQUES: &str = "briques";
+    const PAVEE: &str = "pavee";
+    const BOIS: &str = "bois";
     textures.charger_image("briques.png", BRIQUES);
+    textures.charger_image("pavee.png", PAVEE);
+    textures.charger_image("bois.png", BOIS);
 
-    let mut labyrinthe = labyrinthe::Labyrinthe::new(20, 20);
+    let mut labyrinthe = labyrinthe::Labyrinthe::new(25, 15);
 
 
     // Initialisation des composantes graphiques principales
@@ -42,7 +46,11 @@ fn main() {
     // Variables importantes pour OpenGL
     let programme_opengl = shaders::ProgrammeOpenGL::new(&affichage);
     let mut donnees_opengl = donnees::DonneesOpenGL::new();
-    labyrinthe.ajouter_geometrie([1.0, 1.0, textures.obtenir_id(BRIQUES)], &mut donnees_opengl);
+    labyrinthe.ajouter_geometrie(
+        [1.0, 1.0, textures.obtenir_id(BOIS)],
+        [2.0, 2.0, textures.obtenir_id(PAVEE)],
+        [2.0, 2.0, textures.obtenir_id(BRIQUES)], 
+        &mut donnees_opengl);
     /*donnees_opengl.ajouter_plan(
         [-0.5, -0.5, 1.0],
         [-0.5, 0.5, 1.0],
@@ -101,7 +109,7 @@ fn main() {
 
 
         // Logique du programme
-        const VITESSE: f32 = 1.0 / TAUX_RAFRAICHISSEMENT as f32;
+        const VITESSE: f32 = 5.0 / TAUX_RAFRAICHISSEMENT as f32;
 
         if gestionnaire_evenements.clavier.est_appuyee(&glutin::event::VirtualKeyCode::A) {
             observateur.position -= observateur.droite() * VITESSE;
@@ -121,6 +129,7 @@ fn main() {
         if gestionnaire_evenements.clavier.est_appuyee(&glutin::event::VirtualKeyCode::Space) {
             observateur.position += observateur.haut() * VITESSE;
         }
+        //observateur.position.y = 1.5;
 
         if doit_centrer_souris {
             observateur.ajuster_direction(

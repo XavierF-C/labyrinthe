@@ -87,6 +87,7 @@ mod code_source
                 gl_Position = cameraPerspective * vec4(position, 1.0);
                 
                 coord_tex = coordonnees_texture;
+
                 distance = distance(positionObservateur, position);
             }
         "#)
@@ -106,7 +107,7 @@ mod code_source
             out vec4 couleur;
             
             void main() {
-                couleur = texture(textures, coord_tex) / (distance + 1.0);
+                couleur = texture(textures, coord_tex) / (distance + distance * distance * distance + 1.0);
             }
         "#)
     }
