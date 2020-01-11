@@ -37,14 +37,20 @@ impl Vue {
                                             &self.position,
                                             &self.direction,
                                             Vue::obtenir_ratio_ecran(&affichage));
+        
+        /*let lumieres = [
+            Lumiere::new(),
+            Lumiere::new(),
+            ];*/
         // Données globales à envoyer, vers le bloc uniform
         let donnees_globales = uniform! {
-            cameraPerspective: matrice_camera_perspective,
-            positionObservateur: [self.position.x, self.position.y, self.position.z]
+            camera_perspective: matrice_camera_perspective,
+            position_lumiere: [self.position.x, self.position.y, self.position.z],
+            //lumieres: lumieres,
+            direction_regard: [self.direction.x, self.direction.y, self.direction.z]
         };
 
         cadre.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
-        //cadre.clear_color_and_depth((0.3, 0.3, 0.5, 1.0), 1.0);
 
         // Permet de tenir compte de la profondeur
         let parametres = glium::DrawParameters {
@@ -79,3 +85,21 @@ impl Vue {
 /*
     Partie privée du module ecran
 */
+
+struct Lumiere {
+
+    pub position_lumiere: [f32; 3],
+    pub couleur_lumiere: [f32; 3],
+}
+
+impl Lumiere {
+
+    pub fn new() -> Lumiere {
+
+        Lumiere {
+
+            position_lumiere: [0.0, 0.0, 0.0],
+            couleur_lumiere: [1.0, 1.0, 1.0]
+        }
+    }
+}

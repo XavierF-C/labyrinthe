@@ -24,7 +24,7 @@ fn main() {
     textures.charger_image("pavee.png", PAVEE);
     textures.charger_image("bois.png", BOIS);
 
-    let mut labyrinthe = labyrinthe::Labyrinthe::new(25, 15);
+    let labyrinthe = labyrinthe::Labyrinthe::new(12, 12);
 
 
     // Initialisation des composantes graphiques principales
@@ -33,7 +33,9 @@ fn main() {
         .with_resizable(true)
         .with_maximized(true)
         .with_title("Labyrinthe");
-    let contexte_opengl = glutin::ContextBuilder::new().with_depth_buffer(24);
+    let contexte_opengl = glutin::ContextBuilder::new()
+        .with_vsync(true)    
+        .with_depth_buffer(24);
         // 24 bits est un choix commun pour le depth buffer
     let affichage = glium::Display::new(
             parametres_fenetre,
@@ -109,7 +111,7 @@ fn main() {
 
 
         // Logique du programme
-        const VITESSE: f32 = 5.0 / TAUX_RAFRAICHISSEMENT as f32;
+        const VITESSE: f32 = 1.25 / TAUX_RAFRAICHISSEMENT as f32;
 
         if gestionnaire_evenements.clavier.est_appuyee(&glutin::event::VirtualKeyCode::A) {
             observateur.position -= observateur.droite() * VITESSE;
@@ -129,7 +131,8 @@ fn main() {
         if gestionnaire_evenements.clavier.est_appuyee(&glutin::event::VirtualKeyCode::Space) {
             observateur.position += observateur.haut() * VITESSE;
         }
-        //observateur.position.y = 1.5;
+        labyrinthe.expulser_murs(&mut observateur);
+        observateur.position.y = 1.5;
 
         if doit_centrer_souris {
             observateur.ajuster_direction(
@@ -141,7 +144,19 @@ fn main() {
         }
         
         if gestionnaire_evenements.clavier.vient_etre_appuyee(&glutin::event::VirtualKeyCode::Escape) {
+            
             doit_centrer_souris = !doit_centrer_souris;
+            affichage.gl_window().window().set_cursor_visible(!doit_centrer_souris);
+
+            let mut plein_ecran = None;
+
+            if doit_centrer_souris {
+                
+                plein_ecran = Some(glutin::window::Fullscreen::Borderless(
+                    affichage.gl_window().window().current_monitor()));
+            }
+
+            affichage.gl_window().window().set_fullscreen(plein_ecran);
         }
         
         gestionnaire_evenements.mise_a_jour_post_logique();

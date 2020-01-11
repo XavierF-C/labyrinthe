@@ -36,12 +36,13 @@ impl Observateur {
         }
     }
 
+    /*
     pub fn changer_direction(&mut self, angle_xz: f32, angle_yz: f32) {
 
         self.angles.modifier(angle_xz, angle_yz);
 
         self.nouvelle_direction(self.angles.obtenir_direction());
-    }
+    }*/
 
     pub fn ajuster_direction(&mut self, angle_delta_xz: f32, angle_delta_yz: f32) {
 
