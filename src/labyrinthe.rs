@@ -387,8 +387,8 @@ impl Cellule {
         let z = self.z as f32;
 
         // Affecte le nombre de triangles dessinés
-        const COLONNNES: u32 = 32;
-        const RANGEES: u32 = 64;
+        const COLONNNES: u32 = 4;//32;
+        const RANGEES: u32 = 8;//64;
         
         if self.mur_gauche {
             

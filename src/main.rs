@@ -24,7 +24,7 @@ fn main() {
     textures.charger_image("pavee.png", PAVEE);
     textures.charger_image("bois.png", BOIS);
 
-    let labyrinthe = labyrinthe::Labyrinthe::new(12, 12);
+    let labyrinthe = labyrinthe::Labyrinthe::new(100, 100);
 
 
     // Initialisation des composantes graphiques principales

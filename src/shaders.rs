@@ -71,14 +71,18 @@ mod code_source
     pub fn vertex_shader() -> std::string::String
     {
         std::string::String::from(r#"
-            #version 330
+            #version 430
             uniform layout(std140);
 
             uniform mat4 camera_perspective;
-            uniform vec3 position_lumiere;
-            //uniform vec3 position_lumieres[nbrLumieres];
-            //uniform vec3 couleur_lumieres[nbrLumieres];
             uniform vec3 direction_regard;
+
+            const uint NBR_LUMIERES = 256;
+
+            layout(std140) buffer lumieres {
+                vec4 positions[NBR_LUMIERES];
+                vec4 couleurs[NBR_LUMIERES];
+            };
             
             in vec3 position;
             in vec3 normale;
@@ -87,10 +91,18 @@ mod code_source
             out vec3 normal;
             out vec3 coord_tex;
             
-            out vec3 directionLumiere;
             out vec3 directionRegard;
             
+            out vec3 directionLumiere;
             out float distance;
+
+            const uint NBR_LUMIERES_PROCHES = 8;
+
+            out LumieresProches {
+                float distances[NBR_LUMIERES_PROCHES];
+                vec3 directions[NBR_LUMIERES_PROCHES];
+                vec4 couleurs[NBR_LUMIERES_PROCHES];
+            } lumieresProches;
 
             void main() {
                 gl_Position = camera_perspective * vec4(position, 1.0);
@@ -99,10 +111,47 @@ mod code_source
 
                 coord_tex = coordonnees_texture;
 
-                directionLumiere = normalize(position - position_lumiere);
                 directionRegard = direction_regard;
+                
+                directionLumiere = normalize(position - vec3(positions[0]));
+                distance = distance(vec3(positions[0]), position);
 
-                distance = distance(position_lumiere, position);
+                // initialisation des lumieres
+                uint lumieresChoisis[8];
+                for(int i=0; i<NBR_LUMIERES_PROCHES; ++i) {
+                    lumieresProches.distances[i] = 1000000.0;
+                    //lumieresProches.directions[i] = vec3(0.0, 0.0, 0.0);
+                    //lumieresProches.couleurs[i] = vec4(0.0, 0.0, 0.0, 1.0);
+                    lumieresChoisis[i] = 0;
+                }
+
+                for(int j=0; j<NBR_LUMIERES; ++j) {
+                    
+                    float distance = distance(vec3(positions[j]), position);
+                    float maximum = 0.0;
+                    int index = 0;
+
+                    for(int i=0; i<NBR_LUMIERES_PROCHES; ++i) {
+                        if (maximum < lumieresProches.distances[i]) {
+                            maximum = lumieresProches.distances[i];
+                            index = i;
+                        }
+                    }
+
+                    lumieresChoisis[index] = j;
+                    /*
+                    if (distance < maximum) {
+                        lumieresProches.distances[index] = distance;
+                        lumieresProches.directions[index] = normalize(position - vec3(positions[j]));
+                        lumieresProches.couleurs[index] = couleurs[j];
+                    }*/
+                }
+
+                for(int i=0; i<NBR_LUMIERES_PROCHES; ++i) {
+                    lumieresProches.distances[i] = distance(vec3(positions[lumieresChoisis[i]]), position);
+                    lumieresProches.directions[i] = normalize(position - vec3(positions[lumieresChoisis[i]]));
+                    lumieresProches.couleurs[i] = couleurs[lumieresChoisis[i]];
+                }
             }
         "#)
     }
@@ -110,7 +159,7 @@ mod code_source
     pub fn fragment_shader() -> std::string::String
     {
         std::string::String::from(r#"
-            #version 330
+            #version 430
             uniform layout(std140);
 
             uniform sampler2DArray textures;
@@ -118,14 +167,16 @@ mod code_source
             in vec3 normal;
             in vec3 coord_tex;
 
-            in vec3 directionLumiere;
             in vec3 directionRegard;
+            in vec3 directionLumiere;
 
             in float distance;
 
             out vec4 couleur;
             
             void main() {
+
+
 
                 vec3 direction_reflexion = reflect(-directionLumiere, normal);
                 const float intensite_speculaire = 0.45;

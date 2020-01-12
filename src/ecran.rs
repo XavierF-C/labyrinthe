@@ -38,16 +38,35 @@ impl Vue {
                                             &self.direction,
                                             Vue::obtenir_ratio_ecran(&affichage));
         
-        /*let lumieres = [
-            Lumiere::new(),
-            Lumiere::new(),
-            ];*/
+        let mut lumieres = Lumieres::new();
+        lumieres.positions[0] = [self.position.x, self.position.y, self.position.z, 1.0];
+
+        let mut tampon_lumieres: glium::uniforms::UniformBuffer<Lumieres> =
+            glium::uniforms::UniformBuffer::empty(affichage).unwrap();
+
+        {
+            let mut mapping = tampon_lumieres.map();
+            let mut compteur = 0;
+
+            for valeur in mapping.positions.iter_mut() {
+                
+                *valeur = lumieres.positions[compteur];
+                compteur += 1;
+            }
+
+            compteur = 0;
+            for valeur in mapping.couleurs.iter_mut() {
+                
+                *valeur = lumieres.couleurs[compteur];
+                compteur += 1;
+            }
+        }
+
         // Données globales à envoyer, vers le bloc uniform
         let donnees_globales = uniform! {
             camera_perspective: matrice_camera_perspective,
-            position_lumiere: [self.position.x, self.position.y, self.position.z],
-            //lumieres: lumieres,
-            direction_regard: [self.direction.x, self.direction.y, self.direction.z]
+            direction_regard: [self.direction.x, self.direction.y, self.direction.z],
+            lumieres: &*tampon_lumieres,
         };
 
         cadre.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
@@ -86,20 +105,29 @@ impl Vue {
     Partie privée du module ecran
 */
 
-struct Lumiere {
+const NOMBRE_LUMIERES: usize = 256;
 
-    pub position_lumiere: [f32; 3],
-    pub couleur_lumiere: [f32; 3],
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct Lumieres {
+
+    pub positions: [[f32; 4]; NOMBRE_LUMIERES],
+    pub couleurs: [[f32; 4]; NOMBRE_LUMIERES],
 }
 
-impl Lumiere {
+implement_uniform_block!(Lumieres, positions, couleurs);
 
-    pub fn new() -> Lumiere {
+impl Lumieres {
 
-        Lumiere {
+    pub fn new() -> Lumieres {
+        
+        let positions = [[0.0, 0.0, 0.0, 1.0]; NOMBRE_LUMIERES];
+        let couleurs = [[1.0, 1.0, 1.0, 1.0]; NOMBRE_LUMIERES];
 
-            position_lumiere: [0.0, 0.0, 0.0],
-            couleur_lumiere: [1.0, 1.0, 1.0]
+        Lumieres {
+
+            positions: positions,
+            couleurs: couleurs
         }
     }
 }
