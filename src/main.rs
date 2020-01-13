@@ -20,11 +20,13 @@ fn main() {
     const BRIQUES: &str = "briques";
     const PAVEE: &str = "pavee";
     const BOIS: &str = "bois";
+    const TORCHE: &str = "torche";
     textures.charger_image("briques.png", BRIQUES);
     textures.charger_image("pavee.png", PAVEE);
     textures.charger_image("bois.png", BOIS);
+    textures.charger_image("torche.png", TORCHE);
 
-    let labyrinthe = labyrinthe::Labyrinthe::new(100, 100);
+    let labyrinthe = labyrinthe::Labyrinthe::new(12, 12);
 
 
     // Initialisation des composantes graphiques principales
@@ -51,15 +53,9 @@ fn main() {
     labyrinthe.ajouter_geometrie(
         [1.0, 1.0, textures.obtenir_id(BOIS)],
         [2.0, 2.0, textures.obtenir_id(PAVEE)],
-        [2.0, 2.0, textures.obtenir_id(BRIQUES)], 
+        [2.0, 2.0, textures.obtenir_id(BRIQUES)],
+        textures.obtenir_id(TORCHE),
         &mut donnees_opengl);
-    /*donnees_opengl.ajouter_plan(
-        [-0.5, -0.5, 1.0],
-        [-0.5, 0.5, 1.0],
-        [0.5, 0.5, 1.0],
-        [0.5, -0.5, 1.0],
-        [4.0, 2.0, textures.obtenir_id("briques")]
-    );*/
 
 
     donnees_opengl.generer_vertex_buffer(&affichage);
@@ -164,7 +160,9 @@ fn main() {
         // Affichage du programme
         let vue = ecran::Vue::new(  &observateur.position,
                                     observateur.direction());
-        vue.dessiner(&donnees_opengl, &programme_opengl, &affichage);
+
+        let lumieres = labyrinthe.obtenir_lumieres_proches(&observateur);
+        vue.dessiner(lumieres, &donnees_opengl, &programme_opengl, &affichage);
 
         compteur += 1;
     });

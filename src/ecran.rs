@@ -26,6 +26,7 @@ impl Vue {
 
     // Permet de tout dessiner sur la fenêtre
     pub fn dessiner(&self,
+                    lumieres: Lumieres,
                     donnees_opengl: &::donnees::DonneesOpenGL,
                     programme_opengl: &::shaders::ProgrammeOpenGL,
                     affichage: &glium::Display)
@@ -38,8 +39,25 @@ impl Vue {
                                             &self.direction,
                                             Vue::obtenir_ratio_ecran(&affichage));
         
-        let mut lumieres = Lumieres::new();
-        lumieres.positions[0] = [self.position.x, self.position.y, self.position.z, 1.0];
+        //let mut lumieres = Lumieres::new();
+        //lumieres.positions[0] = [self.position.x, self.position.y, self.position.z, 1.0];
+        //lumieres.couleurs[0] = [0.0, 0.0, 0.0, 1.0];
+
+        /*
+        for x in 0..2 {
+            for z in 0..2 {
+
+                lumieres.positions[1 + x*2 + z] = [-4.0 + 6.0*x as f32, 1.7, -4.0 + 6.0*z as f32, 1.0];
+            }
+        }*/
+
+        /*
+        for x in 0..2 {
+            for z in 0..2 {
+
+                lumieres.positions[1 + x*4 + z] = [-2.9 + 2.0*x as f32, 1.7, -2.9 + 2.0*z as f32, 1.0];
+            }
+        }*/
 
         let mut tampon_lumieres: glium::uniforms::UniformBuffer<Lumieres> =
             glium::uniforms::UniformBuffer::empty(affichage).unwrap();
@@ -78,6 +96,7 @@ impl Vue {
                 write: true,
                 .. Default::default()
             },
+            backface_culling: glium::draw_parameters::BackfaceCullingMode::CullClockwise,
             .. Default::default()
         };
 
@@ -105,11 +124,12 @@ impl Vue {
     Partie privée du module ecran
 */
 
-const NOMBRE_LUMIERES: usize = 256;
+const INFINI: f32 = 1000000.0;
+pub const NOMBRE_LUMIERES: usize = 8;
 
 #[repr(C)]
 #[derive(Clone, Copy)]
-struct Lumieres {
+pub struct Lumieres {
 
     pub positions: [[f32; 4]; NOMBRE_LUMIERES],
     pub couleurs: [[f32; 4]; NOMBRE_LUMIERES],
@@ -121,7 +141,7 @@ impl Lumieres {
 
     pub fn new() -> Lumieres {
         
-        let positions = [[0.0, 0.0, 0.0, 1.0]; NOMBRE_LUMIERES];
+        let positions = [[INFINI, INFINI, INFINI, 1.0]; NOMBRE_LUMIERES];
         let couleurs = [[1.0, 1.0, 1.0, 1.0]; NOMBRE_LUMIERES];
 
         Lumieres {

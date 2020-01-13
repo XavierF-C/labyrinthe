@@ -2,6 +2,7 @@ extern crate rand;
 
 use donnees;
 use observateur;
+use ecran;
 
 /*
     Interface publique du module labyrinthe
@@ -18,6 +19,7 @@ pub struct Labyrinthe {
     hauteur: f32, // hauteur d'une cellule
     cote: f32, // longueur et largeur d'une cellule
     cellules: std::vec::Vec<std::vec::Vec<Cellule>>,
+    lumieres: std::vec::Vec<Lumiere>,
 }
 
 impl Labyrinthe {
@@ -53,15 +55,23 @@ impl Labyrinthe {
             hauteur: HAUTEUR,
             cote: COTE,
             cellules: cellules,
+            lumieres: std::vec::Vec::new(),
         };
 
         labyrinthe.detruire_murs();
+        labyrinthe.enlever_murs_inutiles();
+        labyrinthe.ajouter_lumieres();
 
         labyrinthe
     }
 
     // texture: longueur, hauteur, id 
-    pub fn ajouter_geometrie(&self, texture_plafond: [f32; 3], texture_sol: [f32; 3], texture_mur: [f32; 3], donnees_opengl: &mut donnees::DonneesOpenGL) {
+    pub fn ajouter_geometrie(&self,
+        texture_plafond: [f32; 3],
+        texture_sol: [f32; 3],
+        texture_mur: [f32; 3],
+        texture_torche: f32,
+        donnees_opengl: &mut donnees::DonneesOpenGL) {
 
         let hauteur = self.hauteur;
         let cote = self.cote;
@@ -91,11 +101,53 @@ impl Labyrinthe {
         // Ajoute le plafond
         donnees_opengl.ajouter_plan(
             [self.longueur * TRIANGLES_PAR_UNITE, self.largeur * TRIANGLES_PAR_UNITE],
-            [decalage[0], decalage[1] + hauteur, decalage[2]],
+            [decalage[0] + cote * self.longueur as f32, decalage[1] + hauteur, decalage[2] + cote * self.largeur as f32],
             [decalage[0], decalage[1] + hauteur, decalage[2] + cote * self.largeur as f32],
             [decalage[0] + cote * self.longueur as f32, decalage[1] + hauteur, decalage[2]],
             [texture_plafond[0] * self.longueur as f32, texture_plafond[1] * self.largeur as f32, texture_plafond[2]]
         );
+
+        // Ajoute le mur gauche
+        donnees_opengl.ajouter_plan(
+            [self.longueur * TRIANGLES_PAR_UNITE, self.largeur * TRIANGLES_PAR_UNITE],
+            [decalage[0], decalage[1], decalage[2]],
+            [decalage[0], decalage[1] + hauteur, decalage[2]],
+            [decalage[0], decalage[1], decalage[2] + cote * self.largeur as f32],
+            [texture_mur[0] * self.longueur as f32, texture_mur[1], texture_mur[2]]
+        );
+
+        // Ajoute le mur bas
+        donnees_opengl.ajouter_plan(
+            [self.longueur * TRIANGLES_PAR_UNITE, self.largeur * TRIANGLES_PAR_UNITE],
+            [decalage[0] + cote * self.longueur as f32, decalage[1], decalage[2]],
+            [decalage[0] + cote * self.longueur as f32, decalage[1] + hauteur, decalage[2]],
+            [decalage[0], decalage[1], decalage[2]],
+            [texture_mur[0] * self.longueur as f32, texture_mur[1], texture_mur[2]]
+        );
+
+        // Ajoute le mur droit
+        donnees_opengl.ajouter_plan(
+            [self.longueur * TRIANGLES_PAR_UNITE, self.largeur * TRIANGLES_PAR_UNITE],
+            [decalage[0] + cote * self.longueur as f32, decalage[1], decalage[2] + cote * self.largeur as f32],
+            [decalage[0] + cote * self.longueur as f32, decalage[1] + hauteur, decalage[2] + cote * self.largeur as f32],
+            [decalage[0] + cote * self.longueur as f32, decalage[1], decalage[2]],
+            [texture_mur[0] * self.longueur as f32, texture_mur[1], texture_mur[2]]
+        );
+
+        // Ajoute le mur haut
+        donnees_opengl.ajouter_plan(
+            [self.longueur * TRIANGLES_PAR_UNITE, self.largeur * TRIANGLES_PAR_UNITE],
+            [decalage[0], decalage[1], decalage[2] + cote * self.largeur as f32],
+            [decalage[0], decalage[1] + hauteur, decalage[2] + cote * self.largeur as f32],
+            [decalage[0] + cote * self.longueur as f32, decalage[1], decalage[2] + cote * self.largeur as f32],
+            [texture_mur[0] * self.longueur as f32, texture_mur[1], texture_mur[2]]
+        );
+
+        // Ajoute les torches
+        for i in 0..self.lumieres.len() {
+
+            self.lumieres[i].ajouter_geometrie(texture_torche, donnees_opengl);
+        }
     }
 
     pub fn expulser_murs(&self, observateur: &mut observateur::Observateur) {
@@ -153,6 +205,70 @@ impl Labyrinthe {
         }
     }
 
+    pub fn obtenir_lumieres_proches(&self, observateur: &observateur::Observateur) -> ecran::Lumieres {
+
+        const INFINI: f32 = 1000000.0;
+
+        let position = [observateur.position.x, observateur.position.y, observateur.position.z];
+
+        struct LumiereProche {
+            pub distance: f32,
+            pub index: u32,
+        }
+
+        impl LumiereProche {
+            pub fn new() -> LumiereProche {
+                LumiereProche {
+                    distance: INFINI,
+                    index: 0,
+                }
+            }
+        }
+
+        let mut lumieres_proches = std::vec::Vec::with_capacity(ecran::NOMBRE_LUMIERES);
+
+        const NOMBRE_LUMIERES: usize = ecran::NOMBRE_LUMIERES - 1;// -1 pour laisser une lumière de vision à l'observateur
+
+        for _ in 0..NOMBRE_LUMIERES {
+            lumieres_proches.push(LumiereProche::new());
+        }
+
+        for index in 0..self.lumieres.len() {
+
+            let mut lumiere_plus_distante = LumiereProche{distance: 0.0, index: 0};
+
+            for i in 0..NOMBRE_LUMIERES {
+                if lumieres_proches[i].distance >= lumiere_plus_distante.distance {
+                    lumiere_plus_distante.distance = lumieres_proches[i].distance;
+                    lumiere_plus_distante.index = i as u32;
+                } 
+            }
+
+            let dx = position[0] - self.lumieres[index].position[0];
+            let dy = position[1] - self.lumieres[index].position[1];
+            let dz = position[2] - self.lumieres[index].position[2];
+            let distance_actuelle = dx*dx + dy*dy + dz* dz;
+            
+            if distance_actuelle <= lumiere_plus_distante.distance {
+                lumieres_proches[lumiere_plus_distante.index as usize].distance = distance_actuelle;
+                lumieres_proches[lumiere_plus_distante.index as usize].index = index as u32;
+            }
+        }
+
+        let mut lumieres = ecran::Lumieres::new();
+
+        for i in 0..NOMBRE_LUMIERES {
+            lumieres.positions[i] = self.lumieres[lumieres_proches[i].index as usize].position;
+            lumieres.couleurs[i] = self.lumieres[lumieres_proches[i].index as usize].couleur;
+        }
+
+        const VISION: f32 = 0.5;
+        lumieres.positions[NOMBRE_LUMIERES] = [observateur.position.x, observateur.position.y, observateur.position.z, 1.0];
+        lumieres.couleurs[NOMBRE_LUMIERES] = [VISION, VISION + 0.02, VISION + 0.04, 1.0];
+
+        lumieres
+    }
+
     fn detruire_murs(&mut self) {
 
         let position_depart = self.position_aleatoire();
@@ -166,7 +282,7 @@ impl Labyrinthe {
         
         while sentiers_explorables.len() > 0 {
 
-            let choix_sentier = nombre_aleatoire(sentiers_explorables.len() as u32) as usize;
+            let choix_sentier = entier_aleatoire(sentiers_explorables.len() as u32) as usize;
 
             let position_courante = sentiers_explorables[choix_sentier];
 
@@ -193,17 +309,37 @@ impl Labyrinthe {
             }
             else { // On ouvre au hasard un sentier parmis les choix possibles
 
-                let position_choisie = sentiers_a_ouvrir_possibles[nombre_aleatoire(sentiers_a_ouvrir_possibles.len() as u32) as usize];
-
-                let longueur = self.longueur;
-                let largeur = self.largeur;
+                let position_choisie = sentiers_a_ouvrir_possibles[entier_aleatoire(sentiers_a_ouvrir_possibles.len() as u32) as usize];
 
                 self.obtenir_cellule(
                     &Position::new(position_choisie.0 as u32, position_choisie.1 as u32)
-                ).ouvrir_sentier(longueur, largeur);
+                ).ouvrir_sentier();
 
                 sentiers_explorables.push((position_choisie.0 as u32, position_choisie.1 as u32));
                 sentiers_a_ouvrir_possibles.clear();
+            }
+        }
+    }
+
+    fn enlever_murs_inutiles(&mut self) {
+
+        for x in 0..self.longueur - 1 {
+
+            for z in 0..self.largeur - 1 {
+
+                if  !(self.lire_cellule(&Position::new(x, z)).est_un_sentier()) &&
+                    !(self.lire_cellule(&Position::new(x + 1, z)).est_un_sentier()) {
+
+                    self.obtenir_cellule(&Position::new(x, z)).mur_droit = false;
+                    self.obtenir_cellule(&Position::new(x + 1, z)).mur_gauche = false;
+                }
+
+                if  !(self.lire_cellule(&Position::new(x, z)).est_un_sentier()) &&
+                    !(self.lire_cellule(&Position::new(x, z + 1)).est_un_sentier()) {
+
+                    self.obtenir_cellule(&Position::new(x, z)).mur_haut = false;
+                    self.obtenir_cellule(&Position::new(x, z + 1)).mur_bas = false;
+                }
             }
         }
     }
@@ -250,9 +386,33 @@ impl Labyrinthe {
         return cellules[0] as u32 + cellules[1] as u32 + cellules[2] as u32 + cellules[3] as u32 <= 1
     }
 
+    fn ajouter_lumieres(&mut self) {
+
+        let hauteur = self.hauteur;
+        let cote = self.cote;
+        let decalage = self.decalage;
+        
+        for x in 1..self.longueur - 1 {
+
+            for z in 1..self.largeur - 1 {
+
+                let doit_ajouter = entier_aleatoire(2) == 0;
+
+                if doit_ajouter {
+                    let lumiere = self.obtenir_cellule(&Position::new(x, z)).essayer_eclairer(hauteur, cote, &decalage);
+
+                    match lumiere {
+                        Some(lumiere) => {self.lumieres.push(lumiere)},
+                        None => {}, // Rien à faire
+                    }
+                }
+            }
+        }
+    }
+
     fn position_aleatoire(&self) -> Position {
 
-        Position::new(nombre_aleatoire(self.longueur), nombre_aleatoire(self.largeur))
+        Position::new(entier_aleatoire(self.longueur), entier_aleatoire(self.largeur))
     }
 
     fn lire_cellule(&self, position: &Position) -> &Cellule {
@@ -299,12 +459,20 @@ impl Labyrinthe {
     Partie privée du module labyrinthe
 */
 
-fn nombre_aleatoire(limite: u32) -> u32 {
+fn entier_aleatoire(limite: u32) -> u32 {
 
     use self::rand::{Rng};
     let mut rng = rand::thread_rng();
 
     rng.gen_range(0, limite)
+}
+
+fn nombre_aleatoire() -> f32 {
+
+    use self::rand::{Rng};
+    let mut rng = rand::thread_rng();
+
+    rng.gen_range(0, 10000) as f32 / 10000.0
 }
 
 #[derive(Clone)]
@@ -326,6 +494,33 @@ impl Position {
     }
 }
 
+struct Lumiere {
+
+    pub position: [f32; 4],
+    pub position_bas: [f32; 4],
+    pub couleur: [f32; 4],
+}
+
+impl Lumiere {
+
+    pub fn new(x: f32, y: f32, z: f32, x_bas: f32, y_bas: f32, z_bas: f32) -> Lumiere {
+
+        Lumiere {
+            position: [x, y, z, 1.0],
+            position_bas: [x_bas, y_bas, z_bas, 1.0],
+            couleur: [nombre_aleatoire(), nombre_aleatoire(), nombre_aleatoire(), 1.0]
+        }
+    }
+
+    pub fn ajouter_geometrie(&self, texture_id: f32, donnees_opengl: &mut donnees::DonneesOpenGL) {
+
+        donnees_opengl.ajouter_torche(
+            [self.position[0], self.position[1], self.position[2]],
+            [self.position_bas[0], self.position_bas[1], self.position_bas[2]],
+            texture_id);
+    }
+}
+
 #[derive(Clone)]
 struct Cellule {
 
@@ -333,12 +528,13 @@ struct Cellule {
     pub z: u32,
 
     sentier: bool,
+    eclaire: bool,
 
     // Sens selon une vue de dessus
-    mur_gauche: bool,
-    mur_haut: bool,
-    mur_droit: bool,
-    mur_bas: bool,
+    pub mur_gauche: bool,
+    pub mur_haut: bool,
+    pub mur_droit: bool,
+    pub mur_bas: bool,
 }
 
 impl Cellule {
@@ -351,6 +547,7 @@ impl Cellule {
             z: z,
 
             sentier: false,
+            eclaire: false,
 
             mur_gauche: true,
             mur_haut: true,
@@ -363,15 +560,51 @@ impl Cellule {
         self.sentier
     }
 
-    pub fn ouvrir_sentier(&mut self, longueur: u32, largeur: u32) {
+    pub fn ouvrir_sentier(&mut self) {
         
         self.sentier = true;
 
-        // Les murs sont enlevés, sauf pour le périmètre
-        self.mur_gauche = self.x == 0;
-        self.mur_haut = self.z >= largeur - 1;
-        self.mur_droit = self.x >= longueur - 1;
-        self.mur_bas = self.z == 0;
+        self.mur_gauche = false;
+        self.mur_haut = false;
+        self.mur_droit = false;
+        self.mur_bas = false;
+    }
+
+    pub fn essayer_eclairer(
+        &mut self,
+        hauteur: f32, // dimension y
+        cote: f32, // dimension x et z
+        decalage: &[f32; 3]) -> Option<Lumiere> {
+
+        if !self.sentier && !self.eclaire {
+
+            self.eclaire = true;
+            
+            let ecart_centre = cote * 0.7;
+            let hauteur_lumiere = hauteur * 0.85;
+
+            let x = decalage[0] + cote * (self.x as f32 + 0.5);
+            let y = decalage[1] + hauteur_lumiere;
+            let z = decalage[2] + cote * (self.z as f32 + 0.5);
+
+            let ecart_bas = cote * 0.45;
+            let hauteur_bas = y - hauteur * 0.2;
+
+            if self.mur_gauche && entier_aleatoire(4) == 0 {
+                return Some(Lumiere::new(x - ecart_centre, y, z, x - ecart_bas, hauteur_bas, z));
+            }
+            if self.mur_haut && entier_aleatoire(3) == 0 {
+                return Some(Lumiere::new(x, y, z + ecart_centre, x, hauteur_bas, z + ecart_bas));
+            }
+            if self.mur_droit && entier_aleatoire(2) == 0 {
+                return Some(Lumiere::new(x + ecart_centre, y, z, x + ecart_bas, hauteur_bas, z));
+            }
+            if self.mur_bas {
+                return Some(Lumiere::new(x, y, z - ecart_centre, x, hauteur_bas, z - ecart_bas));
+            }
+        }
+
+        None
     }
 
     pub fn ajouter_geometrie(
@@ -387,19 +620,11 @@ impl Cellule {
         let z = self.z as f32;
 
         // Affecte le nombre de triangles dessinés
-        const COLONNNES: u32 = 4;//32;
-        const RANGEES: u32 = 8;//64;
+        const COLONNNES: u32 = 16;//4 32;
+        const RANGEES: u32 = 32;//8 64;
         
         if self.mur_gauche {
             
-            /*
-            donnees_opengl.ajouter_plan(
-                [COLONNNES, RANGEES],
-                [decalage[0] + x * cote, decalage[1], decalage[2] + z * cote],
-                [decalage[0] + x * cote, decalage[1] + hauteur, decalage[2] + z * cote],
-                [decalage[0] + x * cote, decalage[1], decalage[2] + (z + 1.0) * cote],
-                texture.clone(),
-            );*/
             donnees_opengl.ajouter_plan(
                 [COLONNNES, RANGEES],
                 [decalage[0] + x * cote, decalage[1], decalage[2] + (z + 1.0) * cote],
@@ -411,14 +636,6 @@ impl Cellule {
 
         if self.mur_haut {
             
-            /*
-            donnees_opengl.ajouter_plan(
-                [COLONNNES, RANGEES],
-                [decalage[0] + x * cote, decalage[1], decalage[2] + (z + 1.0) * cote],
-                [decalage[0] + x * cote, decalage[1] + hauteur, decalage[2] + (z + 1.0) * cote],
-                [decalage[0] + (x + 1.0) * cote, decalage[1], decalage[2] + (z + 1.0) * cote],
-                texture.clone(),
-            );*/
             donnees_opengl.ajouter_plan(
                 [COLONNNES, RANGEES],
                 [decalage[0] + (x + 1.0) * cote, decalage[1], decalage[2] + (z + 1.0) * cote],

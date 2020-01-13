@@ -31,50 +31,6 @@ impl DonneesOpenGL {
         }
     }
 
-    /*
-    pub fn ajouter_plan(
-        &mut self,
-        coin_bas_gauche: [f32; 3],
-        coin_haut_gauche: [f32; 3],
-        coin_haut_droit: [f32; 3],
-        coin_bas_droit: [f32; 3],
-        texture: [f32; 3]) // longueur, hauteur, id 
-        {
-        
-        self.sommets.reserve(4);
-        let premier_sommet = self.sommets.len() as u32;
-
-        self.sommets.push(Sommet{
-            position: [coin_bas_gauche[0], coin_bas_gauche[1], coin_bas_gauche[2]],
-            coordonnees_texture: [0.0, 0.0, texture[2]],
-        });
-
-        self.sommets.push(Sommet{
-            position: [coin_haut_gauche[0], coin_haut_gauche[1], coin_haut_gauche[2]],
-            coordonnees_texture: [0.0, texture[1], texture[2]],
-        });
-
-        self.sommets.push(Sommet{
-            position: [coin_haut_droit[0], coin_haut_droit[1], coin_haut_droit[2]],
-            coordonnees_texture: [texture[0], texture[1], texture[2]],
-        });
-
-        self.sommets.push(Sommet{
-            position: [coin_bas_droit[0], coin_bas_droit[1], coin_bas_droit[2]],
-            coordonnees_texture: [texture[0], 0.0, texture[2]],
-        });
-
-
-        self.indices.reserve(6);
-
-        self.indices.push(premier_sommet); // Créer un triangle «dégénéré» avec le mode «trianglestrip»
-        self.indices.push(premier_sommet);
-        self.indices.push(premier_sommet + 1);
-        self.indices.push(premier_sommet + 3);
-        self.indices.push(premier_sommet + 2);
-        self.indices.push(premier_sommet + 2); // Créer un triangle «dégénéré» avec le mode «trianglestrip»
-    }*/
-
     // Cette fonction crée des triangles pour former un seul plan
     pub fn ajouter_plan(
         &mut self,
@@ -144,6 +100,73 @@ impl DonneesOpenGL {
 
             self.indices.push(premier_sommet + sommets_par_rangee * (rangee + 2) - 1); // Créer un triangle «dégénéré» avec le mode «trianglestrip»
         }
+    }
+
+    pub fn ajouter_torche(&mut self, position_flamme: [f32; 3], position_bas: [f32; 3], texture_id: f32) {
+        
+        let premier_sommet = self.sommets.len() as u32;
+
+        const COTE: f32 = 0.1;
+        let dx = position_flamme[0] - position_bas[0];
+        let dz = position_flamme[2] - position_bas[2];
+
+        let mut position_flamme = position_flamme;
+        position_flamme[0] -= dx / 4.0;
+        position_flamme[2] -= dz / 4.0;
+
+        let coin1 = [position_flamme[0] + dz * COTE, position_flamme[1], position_flamme[2] - dx * COTE];
+        let coin2 = [position_flamme[0] - dz * COTE, position_flamme[1], position_flamme[2] + dx * COTE];
+        let coin3 = [position_flamme[0] - dx * 2.0 * COTE, position_flamme[1], position_flamme[2] - dz * 2.0 * COTE];
+
+        let arrete1 = glm::normalize(&glm::Vec3::new(
+            coin1[0] - position_bas[0], coin1[1] - position_bas[1], coin1[2] - position_bas[2]));
+        let arrete2 = glm::normalize(&glm::Vec3::new(
+            coin2[0] - position_bas[0], coin2[1] - position_bas[1], coin2[2] - position_bas[2]));
+        /*let arrete3 = glm::normalize(&glm::Vec3::new(
+                coin3[0] - position_bas[0], coin3[1] - position_bas[1], coin3[2] - position_bas[2]));*/
+        
+        let normale = glm::normalize(&glm::cross(&arrete2, &arrete1));
+        /*let normale2 = glm::normalize(&glm::cross(&arrete3, &arrete2));
+        let normale3 = glm::normalize(&glm::cross(&arrete1, &arrete3));*/
+        
+        let normale = [normale.x, normale.y, normale.z];
+
+        // Bas de la torche
+        self.sommets.push(Sommet{
+            position: position_bas,
+            normale: normale.clone(),
+            coordonnees_texture: [0.5, 0.0, texture_id],
+        });
+
+        // gauche du devant
+        self.sommets.push(Sommet{
+            position: coin1,
+            normale: normale.clone(),
+            coordonnees_texture: [0.0, 1.0, texture_id],
+        });
+
+        // droite du devant
+        self.sommets.push(Sommet{
+            position: coin2,
+            normale: normale.clone(),
+            coordonnees_texture: [1.0, 1.0, texture_id],
+        });
+
+        // derrière de la torche
+        self.sommets.push(Sommet{
+            position: coin3,
+            normale: normale.clone(),
+            coordonnees_texture: [0.5, 1.0, texture_id],
+        });
+
+        self.indices.push(premier_sommet + 1); // Créer un triangle «dégénéré» avec le mode «trianglestrip»
+        self.indices.push(premier_sommet + 1);
+        self.indices.push(premier_sommet + 2);
+        self.indices.push(premier_sommet + 0);
+        self.indices.push(premier_sommet + 3);
+        self.indices.push(premier_sommet + 1);
+        self.indices.push(premier_sommet + 2);
+        self.indices.push(premier_sommet + 2); // Créer un triangle «dégénéré» avec le mode «trianglestrip»
     }
 
     // Cette fonction est nécessaire pour appeler correctement obtenir_vertex_buffer

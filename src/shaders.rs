@@ -77,7 +77,7 @@ mod code_source
             uniform mat4 camera_perspective;
             uniform vec3 direction_regard;
 
-            const uint NBR_LUMIERES = 256;
+            const uint NBR_LUMIERES = 8;
 
             layout(std140) buffer lumieres {
                 vec4 positions[NBR_LUMIERES];
@@ -93,15 +93,12 @@ mod code_source
             
             out vec3 directionRegard;
             
-            out vec3 directionLumiere;
-            out float distance;
-
             const uint NBR_LUMIERES_PROCHES = 8;
 
             out LumieresProches {
-                float distances[NBR_LUMIERES_PROCHES];
-                vec3 directions[NBR_LUMIERES_PROCHES];
                 vec4 couleurs[NBR_LUMIERES_PROCHES];
+                vec3 directions[NBR_LUMIERES_PROCHES];
+                float distances[NBR_LUMIERES_PROCHES];
             } lumieresProches;
 
             void main() {
@@ -113,38 +110,38 @@ mod code_source
 
                 directionRegard = direction_regard;
                 
-                directionLumiere = normalize(position - vec3(positions[0]));
-                distance = distance(vec3(positions[0]), position);
-
-                // initialisation des lumieres
-                uint lumieresChoisis[8];
+                // initialisation des lumieres proches
+                uint lumieresChoisis[NBR_LUMIERES_PROCHES];
                 for(int i=0; i<NBR_LUMIERES_PROCHES; ++i) {
                     lumieresProches.distances[i] = 1000000.0;
-                    //lumieresProches.directions[i] = vec3(0.0, 0.0, 0.0);
-                    //lumieresProches.couleurs[i] = vec4(0.0, 0.0, 0.0, 1.0);
                     lumieresChoisis[i] = 0;
                 }
-
+                
                 for(int j=0; j<NBR_LUMIERES; ++j) {
                     
                     float distance = distance(vec3(positions[j]), position);
                     float maximum = 0.0;
                     int index = 0;
 
+                    /*
                     for(int i=0; i<NBR_LUMIERES_PROCHES; ++i) {
-                        if (maximum < lumieresProches.distances[i]) {
+                        if (distance < lumieresProches.distances[i]) {
+                            lumieresProches.distances[i] = distance;
+                            lumieresChoisis[i] = j;
+                        }
+                    }*/
+                    
+                    for(int i=0; i<NBR_LUMIERES_PROCHES; ++i) {
+                        if (maximum <= lumieresProches.distances[i]) {
                             maximum = lumieresProches.distances[i];
                             index = i;
                         }
                     }
 
-                    lumieresChoisis[index] = j;
-                    /*
-                    if (distance < maximum) {
+                    if (distance <= maximum) {
+                        lumieresChoisis[index] = j;
                         lumieresProches.distances[index] = distance;
-                        lumieresProches.directions[index] = normalize(position - vec3(positions[j]));
-                        lumieresProches.couleurs[index] = couleurs[j];
-                    }*/
+                    }
                 }
 
                 for(int i=0; i<NBR_LUMIERES_PROCHES; ++i) {
@@ -168,30 +165,43 @@ mod code_source
             in vec3 coord_tex;
 
             in vec3 directionRegard;
-            in vec3 directionLumiere;
 
-            in float distance;
+            const uint NBR_LUMIERES_PROCHES = 8;
+
+            in LumieresProches {
+                vec4 couleurs[NBR_LUMIERES_PROCHES];
+                vec3 directions[NBR_LUMIERES_PROCHES];
+                float distances[NBR_LUMIERES_PROCHES];
+            } lumieres;
 
             out vec4 couleur;
             
             void main() {
 
+                vec4 luminosite = vec4(0.0, 0.0, 0.0, 1.0);
 
+                const float INTENSITE_SPECULAIRE = 0.45;
+                const float INTENSITE_DIFFUSE = 0.45;
+                const float INTENSITE_AMBIANTE = 1.0 - (INTENSITE_DIFFUSE + INTENSITE_SPECULAIRE);
 
-                vec3 direction_reflexion = reflect(-directionLumiere, normal);
-                const float intensite_speculaire = 0.45;
-                float lumiere_speculaire = intensite_speculaire * pow(max(dot(directionRegard, direction_reflexion), 0.0), 12);
+                for(int i=0; i<NBR_LUMIERES_PROCHES; ++i) {
 
-                const float intensite_diffuse = 0.45;
-                float lumiere_diffuse = intensite_diffuse * max(dot(normal, directionLumiere), 0.0);
+                    vec3 direction_reflexion = reflect(-lumieres.directions[i], normal);
 
-                const float intensite_ambiante = 1.0 - (intensite_diffuse + intensite_speculaire);
-                
-                const float FACTEUR_DIMINUTION = 5.0;
-                float diminution = (FACTEUR_DIMINUTION * (distance + distance * distance) + 1.0);
-                vec4 luminosite = (lumiere_speculaire + lumiere_diffuse + intensite_ambiante) * vec4(1.0, 0.8, 0.5, 1.0) / diminution;
-               
-                couleur = texture(textures, coord_tex) * luminosite;// / (2.0 * distance * distance + 1.0);
+                    float lumiere_speculaire = INTENSITE_SPECULAIRE * pow(max(dot(directionRegard, direction_reflexion), 0.0), 12);
+
+                    float lumiere_diffuse = INTENSITE_DIFFUSE * max(dot(normal, lumieres.directions[i]), 0.0);
+                    
+                    const float FACTEUR_DIMINUTION = 10.0;
+                    float diminution = (FACTEUR_DIMINUTION * (lumieres.distances[i] + lumieres.distances[i] * lumieres.distances[i]) + 1.0);
+                    vec4 luminosite2 = (lumiere_speculaire + lumiere_diffuse + INTENSITE_AMBIANTE) * lumieres.couleurs[i] / diminution;
+                    
+                    luminosite.x = max(luminosite.x, luminosite2.x);
+                    luminosite.y = max(luminosite.y, luminosite2.y);
+                    luminosite.z = max(luminosite.z, luminosite2.z);
+                }
+
+                couleur = texture(textures, coord_tex) * luminosite;
             }
         "#)
     }
