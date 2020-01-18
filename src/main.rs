@@ -59,7 +59,6 @@ fn main() {
 
 
     donnees_opengl.generer_vertex_buffer(&affichage);
-
     
     // Variables utiles à la logique du programme
     let mut gestionnaire_evenements = evenements::GestionnaireEvenements::new(&affichage);
@@ -127,16 +126,18 @@ fn main() {
         if gestionnaire_evenements.clavier.est_appuyee(&glutin::event::VirtualKeyCode::Space) {
             observateur.position += observateur.haut() * VITESSE;
         }
-        labyrinthe.expulser_murs(&mut observateur);
-        observateur.position.y = 1.5;
+        //labyrinthe.expulser_murs(&mut observateur);
+        //observateur.position.y = 1.5;
 
         if doit_centrer_souris {
-            observateur.ajuster_direction(
+            /*observateur.ajuster_direction(
                 gestionnaire_evenements.souris.delta_x() / 1000.0,
                 gestionnaire_evenements.souris.delta_y() / 1000.0,
-            );
+            );*/
+
+            observateur.ajuster_direction(&gestionnaire_evenements, TAUX_RAFRAICHISSEMENT);
             
-           gestionnaire_evenements.souris.centrer(&affichage);
+            gestionnaire_evenements.souris.centrer(&affichage);
         }
         
         if gestionnaire_evenements.clavier.vient_etre_appuyee(&glutin::event::VirtualKeyCode::Escape) {

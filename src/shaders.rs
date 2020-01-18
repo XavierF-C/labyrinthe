@@ -87,19 +87,17 @@ mod code_source
             in vec3 position;
             in vec3 normale;
             in vec3 coordonnees_texture;
-            
+
             out vec3 normal;
             out vec3 coord_tex;
             
             out vec3 directionRegard;
             
-            const uint NBR_LUMIERES_PROCHES = 8;
-
-            out LumieresProches {
-                vec4 couleurs[NBR_LUMIERES_PROCHES];
-                vec3 directions[NBR_LUMIERES_PROCHES];
-                float distances[NBR_LUMIERES_PROCHES];
-            } lumieresProches;
+            out Lumieres {
+                vec4 couleurs[NBR_LUMIERES];
+                vec3 directions[NBR_LUMIERES];
+                float distances[NBR_LUMIERES];
+            } outLumieres;
 
             void main() {
                 gl_Position = camera_perspective * vec4(position, 1.0);
@@ -109,45 +107,11 @@ mod code_source
                 coord_tex = coordonnees_texture;
 
                 directionRegard = direction_regard;
-                
-                // initialisation des lumieres proches
-                uint lumieresChoisis[NBR_LUMIERES_PROCHES];
-                for(int i=0; i<NBR_LUMIERES_PROCHES; ++i) {
-                    lumieresProches.distances[i] = 1000000.0;
-                    lumieresChoisis[i] = 0;
-                }
-                
-                for(int j=0; j<NBR_LUMIERES; ++j) {
-                    
-                    float distance = distance(vec3(positions[j]), position);
-                    float maximum = 0.0;
-                    int index = 0;
 
-                    /*
-                    for(int i=0; i<NBR_LUMIERES_PROCHES; ++i) {
-                        if (distance < lumieresProches.distances[i]) {
-                            lumieresProches.distances[i] = distance;
-                            lumieresChoisis[i] = j;
-                        }
-                    }*/
-                    
-                    for(int i=0; i<NBR_LUMIERES_PROCHES; ++i) {
-                        if (maximum <= lumieresProches.distances[i]) {
-                            maximum = lumieresProches.distances[i];
-                            index = i;
-                        }
-                    }
-
-                    if (distance <= maximum) {
-                        lumieresChoisis[index] = j;
-                        lumieresProches.distances[index] = distance;
-                    }
-                }
-
-                for(int i=0; i<NBR_LUMIERES_PROCHES; ++i) {
-                    lumieresProches.distances[i] = distance(vec3(positions[lumieresChoisis[i]]), position);
-                    lumieresProches.directions[i] = normalize(position - vec3(positions[lumieresChoisis[i]]));
-                    lumieresProches.couleurs[i] = couleurs[lumieresChoisis[i]];
+                for(int i=0; i<NBR_LUMIERES; ++i) {
+                    outLumieres.distances[i] = distance(vec3(positions[i]), position);
+                    outLumieres.directions[i] = normalize(position - vec3(positions[i]));
+                    outLumieres.couleurs[i] = couleurs[i];
                 }
             }
         "#)
@@ -166,12 +130,12 @@ mod code_source
 
             in vec3 directionRegard;
 
-            const uint NBR_LUMIERES_PROCHES = 8;
+            const uint NBR_LUMIERES = 8;
 
-            in LumieresProches {
-                vec4 couleurs[NBR_LUMIERES_PROCHES];
-                vec3 directions[NBR_LUMIERES_PROCHES];
-                float distances[NBR_LUMIERES_PROCHES];
+            in Lumieres {
+                vec4 couleurs[NBR_LUMIERES];
+                vec3 directions[NBR_LUMIERES];
+                float distances[NBR_LUMIERES];
             } lumieres;
 
             out vec4 couleur;
@@ -184,7 +148,7 @@ mod code_source
                 const float INTENSITE_DIFFUSE = 0.45;
                 const float INTENSITE_AMBIANTE = 1.0 - (INTENSITE_DIFFUSE + INTENSITE_SPECULAIRE);
 
-                for(int i=0; i<NBR_LUMIERES_PROCHES; ++i) {
+                for(int i=0; i<NBR_LUMIERES; ++i) {
 
                     vec3 direction_reflexion = reflect(-lumieres.directions[i], normal);
 
@@ -193,7 +157,7 @@ mod code_source
                     float lumiere_diffuse = INTENSITE_DIFFUSE * max(dot(normal, lumieres.directions[i]), 0.0);
                     
                     const float FACTEUR_DIMINUTION = 10.0;
-                    float diminution = (FACTEUR_DIMINUTION * (lumieres.distances[i] + lumieres.distances[i] * lumieres.distances[i]) + 1.0);
+                    float diminution = FACTEUR_DIMINUTION * (lumieres.distances[i] + lumieres.distances[i] * lumieres.distances[i]) + 1.0;
                     vec4 luminosite2 = (lumiere_speculaire + lumiere_diffuse + INTENSITE_AMBIANTE) * lumieres.couleurs[i] / diminution;
                     
                     luminosite.x = max(luminosite.x, luminosite2.x);

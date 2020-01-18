@@ -236,9 +236,11 @@ impl Labyrinthe {
         for index in 0..self.lumieres.len() {
 
             let mut lumiere_plus_distante = LumiereProche{distance: 0.0, index: 0};
+            
+            for i in 0..std::cmp::min(self.lumieres.len(), NOMBRE_LUMIERES) {
 
-            for i in 0..NOMBRE_LUMIERES {
                 if lumieres_proches[i].distance >= lumiere_plus_distante.distance {
+
                     lumiere_plus_distante.distance = lumieres_proches[i].distance;
                     lumiere_plus_distante.index = i as u32;
                 } 
@@ -250,6 +252,7 @@ impl Labyrinthe {
             let distance_actuelle = dx*dx + dy*dy + dz* dz;
             
             if distance_actuelle <= lumiere_plus_distante.distance {
+
                 lumieres_proches[lumiere_plus_distante.index as usize].distance = distance_actuelle;
                 lumieres_proches[lumiere_plus_distante.index as usize].index = index as u32;
             }
@@ -257,7 +260,8 @@ impl Labyrinthe {
 
         let mut lumieres = ecran::Lumieres::new();
 
-        for i in 0..NOMBRE_LUMIERES {
+        for i in 0..std::cmp::min(self.lumieres.len(), NOMBRE_LUMIERES) {
+
             lumieres.positions[i] = self.lumieres[lumieres_proches[i].index as usize].position;
             lumieres.couleurs[i] = self.lumieres[lumieres_proches[i].index as usize].couleur;
         }
@@ -467,12 +471,12 @@ fn entier_aleatoire(limite: u32) -> u32 {
     rng.gen_range(0, limite)
 }
 
-fn nombre_aleatoire() -> f32 {
+fn nombre_aleatoire(limite: f32) -> f32 {
 
     use self::rand::{Rng};
     let mut rng = rand::thread_rng();
 
-    rng.gen_range(0, 10000) as f32 / 10000.0
+    limite * rng.gen_range(0, 10000) as f32 / 10000.0
 }
 
 #[derive(Clone)]
@@ -505,10 +509,17 @@ impl Lumiere {
 
     pub fn new(x: f32, y: f32, z: f32, x_bas: f32, y_bas: f32, z_bas: f32) -> Lumiere {
 
+        const LUMIERE_ALEATOIRE: f32 = 0.6;
+        const LUMIERE_BASE: f32 = 1.0 - LUMIERE_ALEATOIRE;
+
         Lumiere {
             position: [x, y, z, 1.0],
             position_bas: [x_bas, y_bas, z_bas, 1.0],
-            couleur: [nombre_aleatoire(), nombre_aleatoire(), nombre_aleatoire(), 1.0]
+            couleur: [
+                LUMIERE_BASE + nombre_aleatoire(LUMIERE_ALEATOIRE),
+                LUMIERE_BASE + nombre_aleatoire(LUMIERE_ALEATOIRE),
+                LUMIERE_BASE + nombre_aleatoire(LUMIERE_ALEATOIRE),
+                1.0]
         }
     }
 
@@ -620,8 +631,8 @@ impl Cellule {
         let z = self.z as f32;
 
         // Affecte le nombre de triangles dessinés
-        const COLONNNES: u32 = 16;//4 32;
-        const RANGEES: u32 = 32;//8 64;
+        const COLONNNES: u32 = 8;//4 8 16 32;
+        const RANGEES: u32 = 16;//8 16 32 64;
         
         if self.mur_gauche {
             

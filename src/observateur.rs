@@ -1,5 +1,7 @@
 extern crate nalgebra_glm as glm;
 
+use evenements;
+
 /*
     Interface publique du module observateur
 
@@ -10,7 +12,7 @@ pub struct Observateur {
 
     pub position: glm::Vec3,
     
-    angles: Angles, // représente la direction avec des angles
+    regard: Regard,
     direction: glm::Vec3,
     droite: glm::Vec3,
     haut: glm::Vec3,
@@ -29,32 +31,18 @@ impl Observateur {
             
             position: position,
             
-            angles: Angles::new(),
+            regard: Regard::new(),
             direction: direction,
             droite: droite,
             haut: haut,
         }
     }
 
-    /*
-    pub fn changer_direction(&mut self, angle_xz: f32, angle_yz: f32) {
+    pub fn ajuster_direction(&mut self, gestionnaire_evenements: &evenements::GestionnaireEvenements, taux_rafraichissement: u64) {
+        
+        self.regard.ajuster_direction(gestionnaire_evenements, taux_rafraichissement);
 
-        self.angles.modifier(angle_xz, angle_yz);
-
-        self.nouvelle_direction(self.angles.obtenir_direction());
-    }*/
-
-    pub fn ajuster_direction(&mut self, angle_delta_xz: f32, angle_delta_yz: f32) {
-
-        let angle_xz = self.angles.angle_xz + angle_delta_xz;
-        let angle_yz = self.angles.angle_yz + angle_delta_yz;
-
-        self.angles.modifier(
-            angle_xz,
-            angle_yz,
-        );
-
-        self.nouvelle_direction(self.angles.obtenir_direction());
+        self.nouvelle_direction(self.regard.angles.obtenir_direction());
     }
 
     pub fn direction(&self) -> &glm::Vec3 {
@@ -113,6 +101,24 @@ impl Angles {
 
         self.angle_xz = angle_xz;
         self.angle_yz = angle_yz;
+    }
+
+    pub fn ajouter(&mut self, delta_angle_xz: f32, delta_angle_yz: f32) {
+
+        self.angle_xz += delta_angle_xz;
+        self.angle_yz += delta_angle_yz;
+    }
+
+    pub fn obtenir_direction(&self) -> glm::Vec3{
+
+        glm::Vec3::new(
+            self.angle_xz.sin() * self.angle_yz.cos(),
+            self.angle_yz.sin(),
+            self.angle_xz.cos() * self.angle_yz.cos()
+        )
+    }
+
+    pub fn maintenir_angles(&mut self) {
 
         // Maintenir l'angle xz entre [-PI, PI]
         if self.angle_xz < -std::f32::consts::PI {
@@ -131,13 +137,50 @@ impl Angles {
             self.angle_yz = LIMITE_ANGLE_YZ;
         }
     }
+}
 
-    pub fn obtenir_direction(&self) -> glm::Vec3{
+struct Regard {
 
-        glm::Vec3::new(
-            self.angle_xz.sin() * self.angle_yz.cos(),
-            self.angle_yz.sin(),
-            self.angle_xz.cos() * self.angle_yz.cos()
-        )
+    pub angles: Angles,
+    vitesse_angles: Angles,
+}
+
+impl Regard {
+
+    pub fn new() -> Regard {
+
+        Regard {
+
+            angles: Angles::new(),
+            vitesse_angles: Angles::new(),
+        }
+    }
+
+    pub fn ajuster_direction(&mut self, gestionnaire_evenements: &evenements::GestionnaireEvenements, taux_rafraichissement: u64) {
+
+        let taux_rafraichissement = taux_rafraichissement as f32;
+        const SENSABILITE: f32 = 0.04;
+        const VITESSE_STABILISATION: f32 = 20.0;
+
+        let mut vitesse_angle_xz = SENSABILITE * gestionnaire_evenements.souris.delta_x();
+        let mut vitesse_angle_yz = SENSABILITE * gestionnaire_evenements.souris.delta_y();
+
+        self.vitesse_angles.ajouter(
+            -VITESSE_STABILISATION * self.vitesse_angles.angle_xz / taux_rafraichissement,
+            -VITESSE_STABILISATION * self.vitesse_angles.angle_yz / taux_rafraichissement);        
+
+        if vitesse_angle_xz.abs() < self.vitesse_angles.angle_xz.abs() {
+            vitesse_angle_xz = self.vitesse_angles.angle_xz;
+        }
+        if vitesse_angle_yz.abs() < self.vitesse_angles.angle_yz.abs() {
+            vitesse_angle_yz = self.vitesse_angles.angle_yz;
+        }
+
+        self.vitesse_angles.modifier(vitesse_angle_xz, vitesse_angle_yz);
+
+        self.angles.ajouter(
+            self.vitesse_angles.angle_xz / taux_rafraichissement,
+            self.vitesse_angles.angle_yz / taux_rafraichissement);
+        self.angles.maintenir_angles();
     }
 }
