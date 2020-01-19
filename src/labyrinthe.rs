@@ -1,4 +1,5 @@
 extern crate rand;
+extern crate nalgebra_glm as glm;
 
 use donnees;
 use observateur;
@@ -89,24 +90,6 @@ impl Labyrinthe {
 
         const TRIANGLES_PAR_UNITE: u32 = 4;
 
-        // Ajoute le plancher
-        donnees_opengl.ajouter_plan(
-            [self.longueur * TRIANGLES_PAR_UNITE, self.largeur * TRIANGLES_PAR_UNITE],
-            [decalage[0], decalage[1], decalage[2]],
-            [decalage[0], decalage[1], decalage[2] + cote * self.largeur as f32],
-            [decalage[0] + cote * self.longueur as f32, decalage[1], decalage[2]],
-            [texture_sol[0] * self.longueur as f32, texture_sol[1] * self.largeur as f32, texture_sol[2]]
-        );
-        
-        // Ajoute le plafond
-        donnees_opengl.ajouter_plan(
-            [self.longueur * TRIANGLES_PAR_UNITE, self.largeur * TRIANGLES_PAR_UNITE],
-            [decalage[0] + cote * self.longueur as f32, decalage[1] + hauteur, decalage[2] + cote * self.largeur as f32],
-            [decalage[0], decalage[1] + hauteur, decalage[2] + cote * self.largeur as f32],
-            [decalage[0] + cote * self.longueur as f32, decalage[1] + hauteur, decalage[2]],
-            [texture_plafond[0] * self.longueur as f32, texture_plafond[1] * self.largeur as f32, texture_plafond[2]]
-        );
-
         // Ajoute le mur gauche
         donnees_opengl.ajouter_plan(
             [self.longueur * TRIANGLES_PAR_UNITE, self.largeur * TRIANGLES_PAR_UNITE],
@@ -141,6 +124,24 @@ impl Labyrinthe {
             [decalage[0], decalage[1] + hauteur, decalage[2] + cote * self.largeur as f32],
             [decalage[0] + cote * self.longueur as f32, decalage[1], decalage[2] + cote * self.largeur as f32],
             [texture_mur[0] * self.longueur as f32, texture_mur[1], texture_mur[2]]
+        );
+
+        // Ajoute le plancher
+        donnees_opengl.ajouter_plan(
+            [self.longueur * TRIANGLES_PAR_UNITE, self.largeur * TRIANGLES_PAR_UNITE],
+            [decalage[0], decalage[1], decalage[2]],
+            [decalage[0], decalage[1], decalage[2] + cote * self.largeur as f32],
+            [decalage[0] + cote * self.longueur as f32, decalage[1], decalage[2]],
+            [texture_sol[0] * self.longueur as f32, texture_sol[1] * self.largeur as f32, texture_sol[2]]
+        );
+        
+        // Ajoute le plafond
+        donnees_opengl.ajouter_plan(
+            [self.longueur * TRIANGLES_PAR_UNITE, self.largeur * TRIANGLES_PAR_UNITE],
+            [decalage[0] + cote * self.longueur as f32, decalage[1] + hauteur, decalage[2] + cote * self.largeur as f32],
+            [decalage[0], decalage[1] + hauteur, decalage[2] + cote * self.largeur as f32],
+            [decalage[0] + cote * self.longueur as f32, decalage[1] + hauteur, decalage[2]],
+            [texture_plafond[0] * self.longueur as f32, texture_plafond[1] * self.largeur as f32, texture_plafond[2]]
         );
 
         // Ajoute les torches
@@ -246,10 +247,17 @@ impl Labyrinthe {
                 } 
             }
 
-            let dx = position[0] - self.lumieres[index].position[0];
-            let dy = position[1] - self.lumieres[index].position[1];
-            let dz = position[2] - self.lumieres[index].position[2];
-            let distance_actuelle = dx*dx + dy*dy + dz* dz;
+            let dx = self.lumieres[index].position[0] - position[0];
+            let dy = self.lumieres[index].position[1] - position[1];
+            let dz = self.lumieres[index].position[2] - position[2];
+
+            let mut facteur_arriere = 0.0;
+            let distance_z = glm::dot(observateur.direction(), &glm::Vec3::new(dx, dy, dz));
+            if distance_z < 0.0 {
+                facteur_arriere = 4.0 * distance_z * distance_z;// Permet de moins favoriser les lumières en arrière de l'observateur
+            }
+
+            let distance_actuelle = (dx*dx + dy*dy + dz*dz) + facteur_arriere;
             
             if distance_actuelle <= lumiere_plus_distante.distance {
 
@@ -400,7 +408,7 @@ impl Labyrinthe {
 
             for z in 1..self.largeur - 1 {
 
-                let doit_ajouter = entier_aleatoire(2) == 0;
+                let doit_ajouter = entier_aleatoire(4) == 0;
 
                 if doit_ajouter {
                     let lumiere = self.obtenir_cellule(&Position::new(x, z)).essayer_eclairer(hauteur, cote, &decalage);

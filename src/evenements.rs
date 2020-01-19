@@ -8,6 +8,7 @@ use glium::{glutin};
 */
 
 pub struct GestionnaireEvenements {
+    
     pub clavier: Clavier,
     pub souris: Souris,
 }
@@ -35,7 +36,7 @@ impl GestionnaireEvenements {
 
             glutin::event::WindowEvent::CursorMoved{position, ..} => {
                 
-                self.souris.mise_a_jour(*position);
+                self.souris.mise_a_jour_evenement(*position);
             },
     
             _ => return, // Sinon, rien à faire
@@ -43,7 +44,26 @@ impl GestionnaireEvenements {
     }
 
     // Cette méthode devrait être appelée à la fin de la logique du programme
-    pub fn mise_a_jour_post_logique(&mut self) {
+    pub fn mise_a_jour_post_logique(&mut self, affichage: &glium::Display) {
+
+        self.souris.mise_a_jour(affichage);
+        
+        // Sortir et entrer du mode plein écran
+        if self.clavier.vient_etre_appuyee(&glutin::event::VirtualKeyCode::Escape) {
+            
+            self.souris.mode_centre = !self.souris.mode_centre;
+            affichage.gl_window().window().set_cursor_visible(!self.souris.mode_centre);
+
+            let mut plein_ecran = None;
+
+            if self.souris.mode_centre {
+                
+                plein_ecran = Some(glutin::window::Fullscreen::Borderless(
+                    affichage.gl_window().window().current_monitor()));
+            }
+
+            affichage.gl_window().window().set_fullscreen(plein_ecran);
+        }
 
         self.clavier.mise_a_jour_changement_etat();
     }
@@ -138,6 +158,8 @@ pub struct Souris {
 
     position_actuelle: glutin::dpi::LogicalPosition,
     position_origine: glutin::dpi::LogicalPosition,
+
+    pub mode_centre: bool,
 }
 
 impl Souris {
@@ -147,6 +169,8 @@ impl Souris {
         let mut souris = Souris{
             position_actuelle: glutin::dpi::LogicalPosition::new( 0.0, 0.0),
             position_origine: glutin::dpi::LogicalPosition::new( 0.0, 0.0),
+
+            mode_centre: false,
         };
 
         souris.centrer(affichage);
@@ -166,24 +190,25 @@ impl Souris {
 
     pub fn centrer(&mut self, affichage: &glium::Display) {
 
-        if let Ok(position) = affichage.gl_window().window().inner_position() {
-            
-            let dimensions = affichage.gl_window().window().inner_size();
-            let centre = glutin::dpi::LogicalPosition::new(
-                position.x + dimensions.width / 2.0,
-                position.y + dimensions.height / 2.0);
+        let position = affichage.gl_window().window().inner_size();
+        let centre = glutin::dpi::LogicalPosition::new(
+            position.width / 2.0,
+            position.height / 2.0);
 
-            let _ = affichage.gl_window().window().set_cursor_position(centre);
+        let _ = affichage.gl_window().window().set_cursor_position(centre);
 
-            //self.mise_a_jour(centre);
-            self.position_origine = centre;
-            //self.position_actuelle = centre;
+        self.position_origine = centre;
+    }
+
+    fn mise_a_jour(&mut self, affichage: &glium::Display) {
+
+        if self.mode_centre {
+            self.centrer(affichage);
         }
     }
 
-    fn mise_a_jour(&mut self, position: glutin::dpi::LogicalPosition) {
+    fn mise_a_jour_evenement(&mut self, position: glutin::dpi::LogicalPosition) {
 
-        //self.position_precedente = self.position_actuelle;
         self.position_actuelle = position;
     }
 

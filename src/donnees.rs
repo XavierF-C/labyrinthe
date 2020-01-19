@@ -12,7 +12,7 @@ pub struct DonneesOpenGL {
     sommets: std::vec::Vec<Sommet>,
     indices: std::vec::Vec<u32>, // Permet à Opengl d'interpréter les sommets
 
-    pub vertex_buffer: std::option::Option<glium::VertexBuffer<Sommet>>,
+    vertex_buffer: std::option::Option<glium::VertexBuffer<Sommet>>, // Contient toutes les informations nécessaires à OpenGL pour chaque sommet
 }
 
 impl DonneesOpenGL {
@@ -44,7 +44,6 @@ impl DonneesOpenGL {
         let sommets_par_rangee = divisions[0] + 1;
         let sommets_par_colonne = divisions[1] + 1;
 
-        self.sommets.reserve((sommets_par_rangee * sommets_par_colonne) as usize);
         let premier_sommet = self.sommets.len() as u32;
         
         let largeur = [
@@ -85,8 +84,6 @@ impl DonneesOpenGL {
             }
         }
 
-        self.indices.reserve(((2 * sommets_par_rangee + 2) * divisions[1]) as usize);
-
         // Ajout des indices
         for rangee in 0..divisions[1] {
 
@@ -102,6 +99,7 @@ impl DonneesOpenGL {
         }
     }
 
+    // Cette fonction crée 4 triangles formant un tétraèdre
     pub fn ajouter_torche(&mut self, position_flamme: [f32; 3], position_bas: [f32; 3], texture_id: f32) {
         
         let premier_sommet = self.sommets.len() as u32;
@@ -122,13 +120,8 @@ impl DonneesOpenGL {
             coin1[0] - position_bas[0], coin1[1] - position_bas[1], coin1[2] - position_bas[2]));
         let arrete2 = glm::normalize(&glm::Vec3::new(
             coin2[0] - position_bas[0], coin2[1] - position_bas[1], coin2[2] - position_bas[2]));
-        /*let arrete3 = glm::normalize(&glm::Vec3::new(
-                coin3[0] - position_bas[0], coin3[1] - position_bas[1], coin3[2] - position_bas[2]));*/
         
         let normale = glm::normalize(&glm::cross(&arrete2, &arrete1));
-        /*let normale2 = glm::normalize(&glm::cross(&arrete3, &arrete2));
-        let normale3 = glm::normalize(&glm::cross(&arrete1, &arrete3));*/
-        
         let normale = [normale.x, normale.y, normale.z];
 
         // Bas de la torche
@@ -185,11 +178,10 @@ impl DonneesOpenGL {
 
         glium::index::IndexBuffer::new(
             affichage,
-            glium::index::PrimitiveType::TriangleStrip,//glium::index::PrimitiveType::TrianglesList,
+            glium::index::PrimitiveType::TriangleStrip,
             &self.indices[..]
         ).unwrap()
         // TriangleStrip <=> Chaque triplet consécutif représente un triangle
-        // TrianglesList <=> Un triangle par triplet d'indices
     }
 }
 

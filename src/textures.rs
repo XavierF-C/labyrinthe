@@ -23,19 +23,6 @@ impl<'a> Textures<'a> {
         }
     }
 
-    // identifiant servira à obtenir l'index de la texture
-    pub fn charger_image(&mut self, nom_image_et_extension: &str, identifiant: &str) {
-
-        const CHEMIN: &str = "images/";
-
-        let image = image::io::Reader::open(CHEMIN.to_owned() + nom_image_et_extension).unwrap().decode().unwrap().to_rgba();
-        let dimensions = image.dimensions();
-        let image = glium::texture::RawImage2d::from_raw_rgba_reversed(&image.into_raw(), dimensions);
-
-        self.identifiants.insert(identifiant.to_string(), self.images.len() as f32);
-        self.images.push(image);
-    }
-
     // Donne le numéro associé à l'identifiant
     pub fn obtenir_id(&self, identifiant: &str) -> f32 {
 
@@ -45,6 +32,28 @@ impl<'a> Textures<'a> {
 
             None => panic!("L'identifiant pour la texture "),
         }
+    }
+
+    // identifiant servira à obtenir l'index de la texture
+    pub fn charger_images(&mut self, noms_images: &[&str], extension: &str) {
+
+        for i in 0..noms_images.len() {
+
+            self.charger_image(&(noms_images[i].to_owned() + extension), noms_images[i]);
+        }
+    }
+
+    // identifiant servira à obtenir l'index de la texture
+    fn charger_image(&mut self, nom_image_et_extension: &str, identifiant: &str) {
+
+        const CHEMIN: &str = "images/";
+
+        let image = image::io::Reader::open(CHEMIN.to_owned() + nom_image_et_extension).unwrap().decode().unwrap().to_rgba();
+        let dimensions = image.dimensions();
+        let image = glium::texture::RawImage2d::from_raw_rgba_reversed(&image.into_raw(), dimensions);
+
+        self.identifiants.insert(identifiant.to_string(), self.images.len() as f32);
+        self.images.push(image);
     }
 
     // Cette fonction devrait être appelée une fois après avoir chargé toutes les images

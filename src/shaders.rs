@@ -7,12 +7,32 @@
 // Représente un programme de shaders OpenGL
 pub struct ProgrammeOpenGL {
 
-    pub programme: glium::Program,
+    pub programme_prepasse: glium::Program, // Permet de calculer la profondeur
+    pub programme: glium::Program, // Permet de calculer la couleur
 }
 
 impl ProgrammeOpenGL {
 
     pub fn new(affichage: &glium::Display) -> ProgrammeOpenGL {
+
+        let vertex_shader_prepasse = code_source::vertex_shader_prepasse();
+        let fragment_shader_prepasse = code_source::fragment_shader_prepasse();
+        let programme_prepasse = glium::Program::from_source(
+            affichage,
+            &vertex_shader_prepasse,
+            &fragment_shader_prepasse,
+            None);
+
+        // On vérifie si le programme est correct, sinon on arrête le programme avec l'erreur
+        let programme_prepasse = match programme_prepasse {
+
+            Ok(o) => o,
+            Err(e) => {
+                
+                ProgrammeOpenGL::erreur_creation(&e);
+                panic!("La compilation des shaders a échouée");
+            }
+        };
 
         let vertex_shader = code_source::vertex_shader();
         let fragment_shader = code_source::fragment_shader();
@@ -28,29 +48,34 @@ impl ProgrammeOpenGL {
             Ok(o) => o,
             Err(e) => {
                 
-                match e {
-                    
-                    glium::program::ProgramCreationError::CompilationError(e) => {
-                        println!("\n\nIl y a au moins une erreur de compilation des shaders:\n{}", e);
-                    },
-
-                    glium::program::ProgramCreationError::LinkingError(e) => {
-                        println!("\n\nIl y a au moins une erreur de linking des shaders:\n{}", e);
-                    },
-
-                    _ => { 
-                        println!("\n\nUne erreur inconnue est survenue à la compilation des shaders.");
-                        println!("Voir glium::program::ProgramCreationError\n");
-                    },
-                }
-
+                ProgrammeOpenGL::erreur_creation(&e);
                 panic!("La compilation des shaders a échouée");
             }
         };
 
         ProgrammeOpenGL {
             
+            programme_prepasse: programme_prepasse,
             programme: programme 
+        }
+    }
+
+    fn erreur_creation(erreur: &glium::program::ProgramCreationError) {
+
+        match erreur {
+                    
+            glium::program::ProgramCreationError::CompilationError(e) => {
+                println!("\n\nIl y a au moins une erreur de compilation des shaders:\n{}", e);
+            },
+
+            glium::program::ProgramCreationError::LinkingError(e) => {
+                println!("\n\nIl y a au moins une erreur de linking des shaders:\n{}", e);
+            },
+
+            _ => { 
+                println!("\n\nUne erreur inconnue est survenue à la compilation des shaders.");
+                println!("Voir glium::program::ProgramCreationError\n");
+            },
         }
     }
 }
@@ -68,8 +93,38 @@ mod code_source
     // Déclaration de tous les shaders utilisés
     // La notation r#""# permet de préserver la chaîne brute
 
-    pub fn vertex_shader() -> std::string::String
-    {
+    pub fn vertex_shader_prepasse() -> std::string::String {
+
+        std::string::String::from(r#"
+            #version 430
+            uniform layout(std140);
+
+            uniform mat4 camera_perspective;
+            
+            in vec3 position;
+            in vec3 normale;
+            in vec3 coordonnees_texture;
+
+            void main() {
+                gl_Position = camera_perspective * vec4(position, 1.0);
+            }
+        "#)
+    }
+
+    pub fn fragment_shader_prepasse() -> std::string::String {
+
+        std::string::String::from(r#"
+            #version 430
+            uniform layout(std140);
+            
+            void main() {
+
+            }
+        "#)
+    }
+    
+    pub fn vertex_shader() -> std::string::String {
+
         std::string::String::from(r#"
             #version 430
             uniform layout(std140);
@@ -117,8 +172,8 @@ mod code_source
         "#)
     }
     
-    pub fn fragment_shader() -> std::string::String
-    {
+    pub fn fragment_shader() -> std::string::String {
+
         std::string::String::from(r#"
             #version 430
             uniform layout(std140);

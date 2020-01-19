@@ -1,4 +1,5 @@
 extern crate nalgebra_glm as glm;
+use glium::{glutin};
 
 use evenements;
 
@@ -8,11 +9,15 @@ use evenements;
     Permet de gérer les paramètres de la caméra
 */
 
+#[derive(Clone)]
 pub struct Observateur {
 
     pub position: glm::Vec3,
     
+    deplacement: Deplacement,
     regard: Regard,
+
+    // Vecteurs d'orientation
     direction: glm::Vec3,
     droite: glm::Vec3,
     haut: glm::Vec3,
@@ -31,11 +36,19 @@ impl Observateur {
             
             position: position,
             
+            deplacement: Deplacement::new(),
             regard: Regard::new(),
+
             direction: direction,
             droite: droite,
             haut: haut,
         }
+    }
+
+    pub fn deplacer(&mut self, gestionnaire_evenements: &evenements::GestionnaireEvenements, taux_rafraichissement: u64) {
+        
+        self.deplacement.ajuster_vitesse(&self.clone(), gestionnaire_evenements, taux_rafraichissement);
+        self.position += self.deplacement.delta(taux_rafraichissement);
     }
 
     pub fn ajuster_direction(&mut self, gestionnaire_evenements: &evenements::GestionnaireEvenements, taux_rafraichissement: u64) {
@@ -81,6 +94,90 @@ impl Observateur {
     Partie privée du module observateur
 */
 
+// Permet de fournir le déplacement selon les entrées du clavier
+#[derive(Clone)]
+struct Deplacement {
+
+    pub vitesse: glm::Vec3,
+    mode_aerien: bool,
+}
+
+impl Deplacement {
+
+    pub fn new() -> Deplacement {
+
+        Deplacement {
+            vitesse: glm::Vec3::new(0.0, 0.0, 0.0),
+            mode_aerien: false,
+        }
+    }
+
+    pub fn ajuster_vitesse(
+        &mut self,
+        observateur: &Observateur,
+        gestionnaire_evenements: &evenements::GestionnaireEvenements,
+        taux_rafraichissement: u64) {
+
+        let vitesse = 1.25;
+        let mut cible = glm::Vec3::new(0.0, 0.0, 0.0);
+
+        if gestionnaire_evenements.clavier.est_appuyee(&glutin::event::VirtualKeyCode::A) {
+            cible -= observateur.droite();
+        }
+        if gestionnaire_evenements.clavier.est_appuyee(&glutin::event::VirtualKeyCode::D) {
+            cible += observateur.droite();
+        }
+        if gestionnaire_evenements.clavier.est_appuyee(&glutin::event::VirtualKeyCode::S) {
+            cible -= observateur.direction();
+        }
+        if gestionnaire_evenements.clavier.est_appuyee(&glutin::event::VirtualKeyCode::W) {
+            cible += observateur.direction();
+        }
+
+        if self.mode_aerien {
+
+            if gestionnaire_evenements.clavier.est_appuyee(&glutin::event::VirtualKeyCode::LShift) {
+                cible -= observateur.haut();
+            }
+            if gestionnaire_evenements.clavier.est_appuyee(&glutin::event::VirtualKeyCode::Space) {
+                cible += observateur.haut();
+            }
+        }
+
+        if cible == glm::Vec3::new(0.0, 0.0, 0.0) {
+            self.ralentir(taux_rafraichissement);
+        }
+        else {
+
+            cible = cible.normalize() * vitesse;
+            self.accelerer_vers(&cible, taux_rafraichissement);
+        }
+    }
+
+    pub fn delta(&self, taux_rafraichissement: u64) -> glm::Vec3 {
+        
+        if self.mode_aerien {
+            return self.vitesse / taux_rafraichissement as f32;
+        }
+
+        glm::Vec3::new(self.vitesse.x, 0.0, self.vitesse.z) / taux_rafraichissement as f32
+    }
+
+    fn ralentir(&mut self, taux_rafraichissement: u64) {
+
+        let ralentissement = 1.0 - (10.0 / taux_rafraichissement as f32);
+        self.vitesse = self.vitesse * ralentissement;
+    }
+
+    fn accelerer_vers(&mut self, cible: &glm::Vec3, taux_rafraichissement: u64) {
+
+        let proportion_cible = 20.0 / taux_rafraichissement as f32;
+        self.vitesse = cible * proportion_cible + self.vitesse * (1.0 - proportion_cible);
+    }
+}
+
+// Représente les angles d'une direction
+#[derive(Clone)]
 struct Angles {
 
     pub angle_xz: f32, // gauche-droite
@@ -139,6 +236,8 @@ impl Angles {
     }
 }
 
+// Permet l'ajustement des angles selon les mouvements de la souris
+#[derive(Clone)]
 struct Regard {
 
     pub angles: Angles,
