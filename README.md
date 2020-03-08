@@ -1,11 +1,11 @@
 # Labyrinthe
 
-Ce projet développée avec Rust utilise OpenGL moderne pour le rendu graphique
+Ce projet développé avec Rust utilise OpenGL 4.3 pour le rendu graphique.
 
 ## Fonctionnalités principales
- * Génération d'un labyrinthe par un graphe en arbre
- * Contrôle de la caméra avec la gestion des événements
- * Utilisation de plusieurs sources lumineuses en parallèle
- * Rendu graphique en deux temps: calcul de la profondeur, puis de la couleur
+ * Génération aléatoire du chemin produisant un graphe en arbre
+ * Contrôle de la caméra avec la gestion des événements de souris de clavier
+ * Utilisation de plusieurs sources lumineuses en même temps
+ * Rendu graphique en deux phases: calcul de la profondeur des pixels, puis de la couleur
 
 ![](demonstration.gif)
